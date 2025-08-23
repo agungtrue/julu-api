@@ -1,4 +1,4 @@
-# base image
+# base images
 FROM node:22-alpine
 
 # set workdir
