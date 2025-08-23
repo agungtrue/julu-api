@@ -1,0 +1,26 @@
+import { Entity, PrimaryGeneratedColumn, OneToMany, ManyToOne, Column } from 'typeorm';
+import { Order } from '../orders/orders.entity'
+
+@Entity('outlets')
+export class Outlet {
+  @PrimaryGeneratedColumn()
+  id: number;
+
+  @Column()
+  name: string;
+
+  @Column()
+  branch: string;
+
+  @Column()
+  address: string;
+
+  @Column()
+  pic: string; // next relation into users
+
+  @Column({ default: true })
+  isActive: boolean;
+
+  @OneToMany(() => Order, (item) => item.outlet)
+  order: Order[];
+}
