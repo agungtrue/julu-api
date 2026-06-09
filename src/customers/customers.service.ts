@@ -1,7 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Like } from 'typeorm'
+import { Repository } from 'typeorm'
 import { Customer } from './customers.entity'
+import { CreateCustomerDto } from './dto/create-customer.dto'
 import { response } from '../utils/response'
 
 @Injectable()
@@ -11,24 +12,44 @@ export class CustomersService {
     private repo: Repository<Customer>
   ) {}
 
-  create(data: Partial<Customer>) {
-    const customer = this.repo.create(data);
+  async create(data: Partial<CreateCustomerDto>) {
+    const isExist = await this.repo.findOne({
+      where: [
+        { email: data.email },
+        { phone: data.phone },
+      ],
+    })
+
+    if (isExist) {
+      throw new BadRequestException('email or phone number aleady exist!');
+    }
+
+    const customer = this.repo.create({
+      ...data,
+      password_hash: data.password,
+    });
     return this.repo.save(customer);
   }
 
   async findAll(search?: string): Promise<object> {
+    const query = this.repo.createQueryBuilder('customers')
+    .select([
+      'customers.id',
+      'customers.first_name',
+      'customers.last_name',
+      'customers.email',
+      'customers.phone',
+      'customers.created_at',
+      'customers.updated_at',
+    ]);
+
     if (search) {
-      const result = await this.repo.find({
-        where: [
-          { first_name: Like(`%${search}%`) },
-          { last_name: Like(`%${search}%`) },
-          { email: Like(`%${search}%`) },
-          { phone: Like(`%${search}%`) },
-        ]
-      })
-      return response(200, 'OK', result)
+      query.where(
+        'customers.first_name ILIKE :search OR customers.last_name ILIKE :search OR customers.phone::text ILIKE :search OR customers.email::text ILIKE :search',
+        { search: `%${search}%` },
+      );
     }
     
-    return response(200, 'OK', await this.repo.find())
+    return response(200, 'OK', await query.getMany())
   }
 }

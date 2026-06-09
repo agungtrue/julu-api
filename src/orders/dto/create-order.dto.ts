@@ -16,6 +16,11 @@ export class CreateOrderDto {
   @IsString()
     payment_method: string;
 
+  @ApiProperty({ required: true })
+  @IsNumber()
+    // userId: string;
+    userId: number;
+
   @ApiProperty({ required: false })
   @IsOptional()
   @IsNumber()
@@ -25,6 +30,11 @@ export class CreateOrderDto {
   @IsNotEmpty()
   @IsNumber()
     outletId: number;
+
+  @ApiProperty()
+  @IsOptional()
+  @IsNumber()
+    promoId: number;
 
   @ApiProperty()
   @IsNotEmpty()

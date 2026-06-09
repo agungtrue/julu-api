@@ -1,0 +1,19 @@
+services:
+  api:
+    build: .
+    container_name: julu_api_staging
+    restart: always
+    ports:
+      - "3005:3005"
+    # env_file:
+    #   - .env.development
+    environment:
+    - NODE_ENV=development
+    - PORT=3005
+    - DB_HOST=dbaas-db-1877731-do-user-7846780-0.h.db.ondigitalocean.com
+    - DB_PORT=25060
+    - DB_USER=agungJulu
+    - DB_PASS=AVNS_djS-d9-H74GchFdWva3
+    - DB_NAME=julu_staging
+    - JWT_SECRET=&17_JVlv@=
+    # - DATABASE_URL=postgres://syuhadadwiagung:benarbiru@db:5432/julu_pos_kasir
