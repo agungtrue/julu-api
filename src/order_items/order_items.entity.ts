@@ -21,8 +21,17 @@ export class OrderItem {
   @Column()
   price: number;
 
+  @Column({ default: null })
+  adjustedPrice: number;
+
   @Column()
   subtotal: number;
+
+  @Column({ default: false })
+  hasPromo: boolean;
+
+  @Column({ default: 0 })
+  appliedPromoCount: number;
 
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   createdAt: Date;

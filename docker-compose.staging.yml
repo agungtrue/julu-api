@@ -1,0 +1,19 @@
+services:
+  api:
+    build: .
+    container_name: julu_api_staging
+    restart: always
+    ports:
+      - "3005:3005"
+    # env_file:
+    #   - .env.development
+    environment:
+    - NODE_ENV=development
+    - PORT=3005
+    - DB_HOST=DB_HOST
+    - DB_PORT=25060
+    - DB_USER=DB_USER
+    - DB_PASS=DB_PASSWORD
+    - DB_NAME=julu_staging
+    - JWT_SECRET=JWT_SECRET=
+    # - DATABASE_URL=postgres://syuhadadwiagung:DB_PASS@db:5432/DB_NAME

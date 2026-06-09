@@ -29,6 +29,9 @@ export class Product {
   @Column({ default: true })
   isActive: boolean;
 
+  @Column({ nullable: true })
+  cogs: number;
+
   @OneToMany(() => OrderItem, (item) => item.product, { cascade: true })
   orderItems: OrderItem[];
 }

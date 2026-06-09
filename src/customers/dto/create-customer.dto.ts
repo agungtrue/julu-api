@@ -1,7 +1,8 @@
 import { ApiProperty } from '@nestjs/swagger';
 import {
   IsNotEmpty, IsString, IsBoolean,
-  IsOptional, IsEmail
+  IsOptional, IsEmail,
+  MinLength
 } from 'class-validator';
 
 export class CreateCustomerDto {
@@ -24,6 +25,17 @@ export class CreateCustomerDto {
   @IsNotEmpty()
   @IsString()
     phone: string;
+
+  @ApiProperty()
+  @IsNotEmpty()
+  @IsString()
+    type: string;
+
+  @ApiProperty()
+  @IsNotEmpty()
+  @MinLength(6)
+  @IsString()
+    password: string;
 
   @ApiProperty({ default: true })
   @IsNotEmpty()
