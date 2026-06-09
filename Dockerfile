@@ -17,7 +17,7 @@ WORKDIR /usr/src/app
 # Ambil hanya hasil build dan dependencies produksi dari Stage 1
 COPY --from=builder /usr/src/app/dist ./dist
 COPY --from=builder /usr/src/app/package*.json ./
-COPY --from=builder /usr/src/app/ca-certificate.crt ./ca-certificate.crt
+# COPY --from=builder /usr/src/app/ca-certificate.crt ./ca-certificate.crt
 
 # Re-install hanya dependencies produksi (mengurangi ukuran image drastis)
 RUN npm install --only=production --legacy-peer-deps
