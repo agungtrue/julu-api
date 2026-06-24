@@ -1,44 +1,47 @@
 import { ApiProperty } from '@nestjs/swagger';
 import {
-  IsNotEmpty, IsString, IsBoolean,
-  IsOptional, IsEmail,
-  MinLength
+  IsNotEmpty,
+  IsString,
+  IsBoolean,
+  IsOptional,
+  IsEmail,
+  MinLength,
 } from 'class-validator';
 
 export class CreateCustomerDto {
   @ApiProperty()
   @IsNotEmpty()
   @IsString()
-    first_name: string;
+  first_name: string;
 
   @ApiProperty()
   @IsNotEmpty()
   @IsString()
-    last_name: string;
+  last_name: string;
 
   @ApiProperty({ required: false })
   @IsOptional()
   @IsEmail()
-    email: string;
+  email: string;
 
   @ApiProperty()
   @IsNotEmpty()
   @IsString()
-    phone: string;
+  phone: string;
 
   @ApiProperty()
   @IsNotEmpty()
   @IsString()
-    type: string;
+  type: string;
 
   @ApiProperty()
   @IsNotEmpty()
   @MinLength(6)
   @IsString()
-    password: string;
+  password: string;
 
   @ApiProperty({ default: true })
   @IsNotEmpty()
   @IsBoolean()
-    is_active?: boolean = true;
+  is_active?: boolean = true;
 }
