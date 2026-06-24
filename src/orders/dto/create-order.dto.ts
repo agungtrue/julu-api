@@ -1,43 +1,45 @@
 import { ApiProperty } from '@nestjs/swagger';
 import {
-  IsNotEmpty, IsString, IsBoolean,
+  IsNotEmpty,
+  IsString,
+  IsBoolean,
   IsOptional,
-  IsNumber
+  IsNumber,
 } from 'class-validator';
 
 export class CreateOrderDto {
   @ApiProperty()
   @IsNotEmpty()
   @IsNumber()
-    total: number;
+  total: number;
 
   @ApiProperty()
   @IsNotEmpty()
   @IsString()
-    payment_method: string;
+  payment_method: string;
 
   @ApiProperty({ required: true })
   @IsNumber()
-    // userId: string;
-    userId: number;
+  // userId: string;
+  userId: number;
 
   @ApiProperty({ required: false })
   @IsOptional()
   @IsNumber()
-    customerId: number;
+  customerId: number;
 
   @ApiProperty()
   @IsNotEmpty()
   @IsNumber()
-    outletId: number;
+  outletId: number;
 
   @ApiProperty()
   @IsOptional()
   @IsNumber()
-    promoId: number;
+  promoId: number;
 
   @ApiProperty()
   @IsNotEmpty()
   @IsString()
-    uuid: string;
+  uuid: string;
 }

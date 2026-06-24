@@ -10,30 +10,34 @@ import { OrderItemsModule } from './order_items/order_items.module';
 import { CustomersModule } from './customers/customers.module';
 import { OutletsModule } from './outlets/outlets.module';
 import { join } from 'path';
-import { dbConfig, envMode } from '../db.config'
+import { dbConfig, envMode } from '../db.config';
 import { AuthModule } from './auth/auth.module';
 import { PromotionsModule } from './promotions/promotions.module';
+import { IngredientsModule } from './ingredients/ingredients.module';
 
-console.log('app.module...', { envMode })
+console.log('app.module...', { envMode });
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
       ...(envMode !== 'local' && {
-        envFilePath: join(process.cwd(), envMode === 'development' ? '.env.development' : '.env.production')
+        envFilePath: join(
+          process.cwd(),
+          envMode === 'development' ? '.env.development' : '.env.production',
+        ),
       }),
     }),
-    TypeOrmModule.forRoot(
-      dbConfig()),
-      ProductsModule,
-      UsersModule,
-      OrdersModule,
-      OrderItemsModule,
-      CustomersModule,
-      OutletsModule,
-      AuthModule,
-      PromotionsModule,
+    TypeOrmModule.forRoot(dbConfig()),
+    ProductsModule,
+    UsersModule,
+    OrdersModule,
+    OrderItemsModule,
+    CustomersModule,
+    OutletsModule,
+    AuthModule,
+    PromotionsModule,
+    IngredientsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -7,7 +7,7 @@ import { User } from '../users/users.entity';
 import { Customer } from '../customers/customers.entity';
 import { randomUUID } from 'crypto';
 import * as bcrypt from 'bcrypt';
-import { CreateCustomerDto } from '../customers/dto/create-customer.dto'
+import { CreateCustomerDto } from '../customers/dto/create-customer.dto';
 
 @Injectable()
 export class AuthService {
@@ -23,23 +23,20 @@ export class AuthService {
 
   async generateTokens(payload: any) {
     const accessToken = this.jwtService.sign(payload, {
-      expiresIn: '60m',
+      expiresIn: '120m',
     });
-
-    // payload: {
-    //     type,
-    //     customerId/userId,
-    // }
 
     const refreshTokenStr = randomUUID();
     const refreshToken = this.refreshTokenRepo.create({
       refresh_token: refreshTokenStr,
       user_type: payload.type,
-      user: payload.userId ? { id: payload.userId } as User : null,
-      customer: payload.customerId ? { id: payload.customerId } as Customer : null,
+      user: payload.userId ? ({ id: payload.userId } as User) : null,
+      customer: payload.customerId
+        ? ({ id: payload.customerId } as Customer)
+        : null,
       expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
     });
-    
+
     await this.refreshTokenRepo.save(refreshToken);
 
     return {
@@ -72,20 +69,25 @@ export class AuthService {
     );
   }
 
-  async login(dto: CreateCustomerDto): Promise<{ accessToken: string; refreshToken: string }> {
-
-    let access = null
+  async login(
+    dto: CreateCustomerDto,
+  ): Promise<{ accessToken: string; refreshToken: string }> {
+    let access = null;
     if (dto.type === 'customer') {
       access = await this.customerRepo.findOne({ where: { phone: dto.phone } });
     } else {
-      access = await this.userRepo.findOne({ where: { phone: dto.phone } });
+      access = await this.userRepo.findOne({
+        where: [
+          ...(dto.email ? [{ email: dto.email }] : []),
+          ...(dto.phone ? [{ phone: dto.phone }] : []),
+        ],
+      });
     }
 
     if (!access) {
       throw new UnauthorizedException('Invalid credentials');
     }
-    
-  
+
     const isMatch = await bcrypt.compare(dto.password, access.password_hash);
     if (!isMatch) {
       throw new UnauthorizedException('Invalid credentials');
@@ -94,18 +96,20 @@ export class AuthService {
     // generate token
     const payload = {
       type: dto.type,
-      ...(dto.type === 'customer' ? { customerId: access.id } : { userId: access.id, outletId: access.outletId })
-    }
+      ...(dto.type === 'customer'
+        ? { customerId: access.id }
+        : { userId: access.id, outletId: access.outletId }),
+    };
 
-    const { access_token, refresh_token } = await this.generateTokens(payload)
-  
+    const { access_token, refresh_token } = await this.generateTokens(payload);
+
     // (opsional) simpan refresh token ke DB kalau mau rotate
     // await this.refreshTokenRepo.save({
     //   customerId: customer.id,
     //   token: refreshToken,
     //   expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 hari
     // });
-  
+
     return { accessToken: access_token, refreshToken: refresh_token };
   }
 }

@@ -1,7 +1,8 @@
-import { Entity, PrimaryGeneratedColumn, OneToMany, ManyToOne, Column } from 'typeorm';
-import { OrderItem } from '../order_items/order_items.entity'
-import { ProductType } from './enums/product.enum'
-import { SizeType } from './enums/size.enum'
+import { Entity, PrimaryGeneratedColumn, OneToMany, Column } from 'typeorm';
+import { OrderItem } from '../order_items/order_items.entity';
+import { ProductType } from './enums/product.enum';
+import { SizeType } from './enums/size.enum';
+import { ProductIngredient } from '../ingredients/entities/product-ingredient.entity';
 
 @Entity('products')
 export class Product {
@@ -34,4 +35,7 @@ export class Product {
 
   @OneToMany(() => OrderItem, (item) => item.product, { cascade: true })
   orderItems: OrderItem[];
+
+  @OneToMany(() => ProductIngredient, (item) => item.product, { cascade: true })
+  productIngredients: ProductIngredient[];
 }
