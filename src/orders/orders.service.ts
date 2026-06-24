@@ -141,6 +141,10 @@ export class OrdersService {
 
   async findAll(search: any, req: any, status: any) {
     const outletId = req.user.outletId;
+
+    const page = 1;
+    const limit = 100;
+    const skip = (page - 1) * limit;
     const query = this.orderRepo
       .createQueryBuilder('orders')
       .leftJoinAndSelect('orders.items', 'items')
@@ -173,7 +177,9 @@ export class OrdersService {
         `orders.createdAt AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Jakarta'`,
         'createdAtJakarta',
       )
-      .orderBy('orders.createdAt', 'DESC');
+      .orderBy('orders.createdAt', 'DESC')
+      .take(limit)
+      .skip(skip);
 
     // day js
     dayjs.extend(utc);
@@ -409,7 +415,7 @@ export class OrdersService {
       const allOpex = this.sumOperationalCosts([operational01, operational02]);
       operational = allOpex;
 
-      const allFeePassed = this.sumOperationalCosts([feeStaff01, feeStaff02])
+      const allFeePassed = this.sumOperationalCosts([feeStaff01, feeStaff02]);
       feeStaff = allFeePassed;
     }
 
@@ -776,6 +782,7 @@ export class OrdersService {
         avgTransactionValue: revenues / orders.length, // revenues / transactions
         avgRevenuePerDay: revenues / dayDiff, // revenues / dateRangeCount
         avgTransactionsPerDay: orders.length / dayDiff,
+        avgRevPerDay: revenues / dayDiff,
       },
       // debug: allItems,
       // dbLevel: resultx
