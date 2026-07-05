@@ -1,6 +1,12 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
-import { Order } from '../orders/orders.entity'
-import { Product } from '../products/products.entity'
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  JoinColumn,
+} from 'typeorm';
+import { Order } from '../orders/orders.entity';
+import { Product } from '../products/products.entity';
 
 @Entity('order_items')
 export class OrderItem {
@@ -11,7 +17,9 @@ export class OrderItem {
   @JoinColumn({ name: 'order_id' })
   order: Order;
 
-  @ManyToOne(() => Product, (product) => product.orderItems, { onDelete: 'RESTRICT' })
+  @ManyToOne(() => Product, (product) => product.orderItems, {
+    onDelete: 'RESTRICT',
+  })
   @JoinColumn({ name: 'product_id' })
   product: Product;
 

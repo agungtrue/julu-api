@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Promotion } from './promotions.entity'
-import { response } from '../utils/response'
+import { Promotion } from './promotions.entity';
+import { response } from '../utils/response';
 
 @Injectable()
 export class PromotionsService {
@@ -18,6 +18,6 @@ export class PromotionsService {
 
   async findAll(): Promise<object> {
     const data = await this.repo.find();
-    return response(200, 'OK', data)
+    return response(200, 'OK', data);
   }
 }

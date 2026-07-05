@@ -1,7 +1,13 @@
-import { Entity, CreateDateColumn, PrimaryGeneratedColumn, ManyToOne, Column, JoinColumn } from 'typeorm';
+import {
+  Entity,
+  CreateDateColumn,
+  PrimaryGeneratedColumn,
+  ManyToOne,
+  Column,
+  JoinColumn,
+} from 'typeorm';
 import { User } from '../../users/users.entity';
 import { Customer } from '../../customers/customers.entity';
-
 
 @Entity('refresh_tokens')
 export class RefreshToken {

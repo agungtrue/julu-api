@@ -20,6 +20,7 @@ export class IngredientsController {
       name: string;
       purchase_cost: number;
       conversion_factor: number;
+      unit: string;
     },
   ) {
     return this.ingredientsService.createIngredient(data);
