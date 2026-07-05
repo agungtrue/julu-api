@@ -1,8 +1,18 @@
-import { Entity, BeforeInsert, BeforeUpdate, PrimaryGeneratedColumn, Column, OneToMany, CreateDateColumn, UpdateDateColumn, ManyToOne } from 'typeorm';
+import {
+  Entity,
+  BeforeInsert,
+  BeforeUpdate,
+  PrimaryGeneratedColumn,
+  Column,
+  OneToMany,
+  CreateDateColumn,
+  UpdateDateColumn,
+  ManyToOne,
+} from 'typeorm';
 import { RefreshToken } from '../auth/entities/refresh_tokens.entity';
-import { Outlet } from '../outlets/outlets.entity'
+import { Outlet } from '../outlets/outlets.entity';
 import { Order } from '../orders/orders.entity';
-import * as bcrypt from "bcrypt";
+import * as bcrypt from 'bcrypt';
 
 @Entity('users')
 export class User {
@@ -44,9 +54,8 @@ export class User {
 
   @BeforeInsert()
   @BeforeUpdate()
-
   async hashPassword() {
-    if (this.password_hash && !this.password_hash.startsWith("$2b$")) {
+    if (this.password_hash && !this.password_hash.startsWith('$2b$')) {
       const saltRounds = 10;
       this.password_hash = await bcrypt.hash(this.password_hash, saltRounds);
     }

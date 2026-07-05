@@ -47,7 +47,7 @@ export class OrdersService {
     const { uuid, items } = data;
 
     return await this.dataSource.transaction(async (manager) => {
-      let existingOrder = await manager.findOne(Order, {
+      const existingOrder = await manager.findOne(Order, {
         where: { uuid },
       });
 

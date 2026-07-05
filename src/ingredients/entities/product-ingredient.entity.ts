@@ -43,14 +43,12 @@ export class ProductIngredient {
   })
   sub_total_cost: number;
 
-  // Relasi kunci ke Menu utama (Jika produk dihapus, baris takaran resep ini ikut terhapus otomatis)
   @ManyToOne(() => Product, (product) => product.productIngredients, {
     onDelete: 'CASCADE',
   })
   @JoinColumn({ name: 'product_id' })
   product: Product;
 
-  // Relasi kunci ke Master Bahan (Mencegah bahan dihapus jika masih terikat dalam resep aktif)
   @ManyToOne(() => Ingredient, (ingredient) => ingredient.productIngredients, {
     onDelete: 'RESTRICT',
   })
