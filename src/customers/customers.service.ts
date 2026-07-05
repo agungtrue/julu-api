@@ -1,24 +1,21 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm'
-import { Customer } from './customers.entity'
-import { CreateCustomerDto } from './dto/create-customer.dto'
-import { response } from '../utils/response'
+import { Repository } from 'typeorm';
+import { Customer } from './customers.entity';
+import { CreateCustomerDto } from './dto/create-customer.dto';
+import { response } from '../utils/response';
 
 @Injectable()
 export class CustomersService {
   constructor(
     @InjectRepository(Customer)
-    private repo: Repository<Customer>
+    private repo: Repository<Customer>,
   ) {}
 
   async create(data: Partial<CreateCustomerDto>) {
     const isExist = await this.repo.findOne({
-      where: [
-        { email: data.email },
-        { phone: data.phone },
-      ],
-    })
+      where: [{ email: data.email }, { phone: data.phone }],
+    });
 
     if (isExist) {
       throw new BadRequestException('email or phone number aleady exist!');
@@ -32,16 +29,17 @@ export class CustomersService {
   }
 
   async findAll(search?: string): Promise<object> {
-    const query = this.repo.createQueryBuilder('customers')
-    .select([
-      'customers.id',
-      'customers.first_name',
-      'customers.last_name',
-      'customers.email',
-      'customers.phone',
-      'customers.created_at',
-      'customers.updated_at',
-    ]);
+    const query = this.repo
+      .createQueryBuilder('customers')
+      .select([
+        'customers.id',
+        'customers.first_name',
+        'customers.last_name',
+        'customers.email',
+        'customers.phone',
+        'customers.created_at',
+        'customers.updated_at',
+      ]);
 
     if (search) {
       query.where(
@@ -49,7 +47,7 @@ export class CustomersService {
         { search: `%${search}%` },
       );
     }
-    
-    return response(200, 'OK', await query.getMany())
+
+    return response(200, 'OK', await query.getMany());
   }
 }

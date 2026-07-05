@@ -1,6 +1,12 @@
-import { Entity, PrimaryGeneratedColumn, OneToMany, ManyToOne, Column } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  OneToMany,
+  ManyToOne,
+  Column,
+} from 'typeorm';
 import { Order } from '../orders/orders.entity';
-import { PromotionType } from './enums/promotion.enum'
+import { PromotionType } from './enums/promotion.enum';
 
 @Entity('promotions')
 export class Promotion {

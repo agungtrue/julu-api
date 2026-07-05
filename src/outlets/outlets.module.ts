@@ -4,6 +4,6 @@ import { OutletsController } from './outlets.controller';
 
 @Module({
   providers: [OutletsService],
-  controllers: [OutletsController]
+  controllers: [OutletsController],
 })
 export class OutletsModule {}

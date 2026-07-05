@@ -1,7 +1,16 @@
-import { Entity, PrimaryGeneratedColumn, Column, OneToMany, UpdateDateColumn, CreateDateColumn, BeforeInsert, BeforeUpdate } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  OneToMany,
+  UpdateDateColumn,
+  CreateDateColumn,
+  BeforeInsert,
+  BeforeUpdate,
+} from 'typeorm';
 import { Order } from '../orders/orders.entity';
 import { RefreshToken } from '../auth/entities/refresh_tokens.entity';
-import * as bcrypt from "bcrypt";
+import * as bcrypt from 'bcrypt';
 
 @Entity('customers')
 export class Customer {
@@ -40,9 +49,8 @@ export class Customer {
 
   @BeforeInsert()
   @BeforeUpdate()
-
   async hashPassword() {
-    if (this.password_hash && !this.password_hash.startsWith("$2b$")) {
+    if (this.password_hash && !this.password_hash.startsWith('$2b$')) {
       const saltRounds = 10;
       this.password_hash = await bcrypt.hash(this.password_hash, saltRounds);
     }
