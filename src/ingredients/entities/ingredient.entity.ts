@@ -48,6 +48,9 @@ export class Ingredient {
   })
   cost_per_unit: number;
 
+  @Column({ type: 'varchar', length: 20, default: 'GRAM' })
+  unit: string;
+
   @OneToMany(
     () => ProductIngredient,
     (productIngredient) => productIngredient.ingredient,

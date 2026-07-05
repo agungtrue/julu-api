@@ -1,4 +1,12 @@
-import { Entity, PrimaryGeneratedColumn, JoinColumn, Column, OneToMany, ManyToOne, CreateDateColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  JoinColumn,
+  Column,
+  OneToMany,
+  ManyToOne,
+  CreateDateColumn,
+} from 'typeorm';
 import { Customer } from '../customers/customers.entity';
 import { User } from '../users/users.entity';
 import { Promotion } from '../promotions/promotions.entity';
@@ -21,7 +29,9 @@ export class Order {
   @Column({ nullable: true })
   userId: number;
 
-  @ManyToOne(() => Customer, (customer) => customer.orders, { onDelete: 'SET NULL' })
+  @ManyToOne(() => Customer, (customer) => customer.orders, {
+    onDelete: 'SET NULL',
+  })
   @JoinColumn({ name: 'customerId' })
   customer: Customer;
 
@@ -33,7 +43,7 @@ export class Order {
   outlet: Outlet;
 
   @Column({ nullable: true })
-  outletId: number
+  outletId: number;
 
   @ManyToOne(() => Promotion, (promo) => promo.orders, { onDelete: 'SET NULL' })
   @JoinColumn({ name: 'promoId' })

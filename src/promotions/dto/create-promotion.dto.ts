@@ -1,8 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
-import {
-  IsNotEmpty, IsString, IsBoolean
-} from 'class-validator';
-import { PromotionType } from '../enums/promotion.enum'
+import { IsNotEmpty, IsString, IsBoolean } from 'class-validator';
+import { PromotionType } from '../enums/promotion.enum';
 
 export class CreatePromotionDto {
   @ApiProperty()

@@ -27,6 +27,7 @@ export class IngredientsService {
     name: string;
     purchase_cost: number;
     conversion_factor: number;
+    unit: string;
   }) {
     if (data.conversion_factor <= 0)
       throw new BadRequestException('Faktor konversi harus lebih dari 0');
@@ -159,23 +160,16 @@ export class IngredientsService {
     };
   }
 
-  // === 3. HELPER AUTOMATION (SINKRONISASI LEVEL DATA) ===
-
-  // Fungsi pengunci untuk kalkulasi tunggal per satu menu produk
   private async syncSingleProductCogs(productId: number) {
     const currentRecipeItems = await this.productIngredientRepo.find({
       where: { product_id: productId },
     });
 
-    // SUM seluruh sub_total_cost komponen resep
     const finalCogs = currentRecipeItems.reduce(
       (acc, item) => acc + item.sub_total_cost,
       0,
     );
 
-    console.log({ syncSingleProductCogsfinalCogs: Math.ceil(finalCogs) });
-
-    // Langsung tembak UPDATE ke kolom products.cogs eksisting Anda
     await this.productRepo.update(productId, { cogs: Math.ceil(finalCogs) });
   }
 
