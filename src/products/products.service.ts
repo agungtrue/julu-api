@@ -23,22 +23,24 @@ export class ProductsService {
   }
 
   async findAll(withIngredients = false): Promise<object> {
-    let query = {};
+    const query: any = {
+      where: {
+        isActive: true,
+      },
+    };
     if (withIngredients) {
-      query = {
-        relations: {
-          productIngredients: {
-            ingredient: true,
-          },
-        },
-        order: {
-          id: 'ASC',
-        },
-        where: {
-          isActive: true,
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      query.relations = {
+        productIngredients: {
+          ingredient: true,
         },
       };
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      query.order = {
+        id: 'ASC',
+      };
     }
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     const data = await this.repo.find(query);
     return response(200, 'OK', data);
   }
