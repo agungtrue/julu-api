@@ -290,11 +290,10 @@ export class OrdersService {
     };
 
     const operational01 = {
-      // employee: 33400,
       employee: 80000, // new
       managerialFee: 120000,
       propertyRent: 70000, // vamos
-      propertyRent2: 40000, // buffer for pay a rent full on next contract
+      propertyRent2: 0, // buffer for pay a rent full on next contract or totaly funding
       prepaidElectricityToken1: 3500,
       prepaidElectricityToken2: 0,
       wifi: 0,
