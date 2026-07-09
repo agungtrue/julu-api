@@ -20,14 +20,6 @@ export class OrdersService {
   ) {}
 
   async create(data: Partial<Order>) {
-    // static handler on new branch
-    const customUserId = '07f59d84-d642-4913-a28d-85e2161e70f1';
-    // @ts-ignore
-    if (data.userId === customUserId) {
-      data.userId = customUserId;
-      data.outletId = 2;
-    }
-
     const order = this.orderRepo.create(data);
     return this.orderRepo.save(order);
   }
@@ -139,8 +131,8 @@ export class OrdersService {
     });
   }
 
-  async findAll(search: any, req: any, status: any) {
-    const outletId = req.user.outletId;
+  async findAll(search: any, user: any, status: any) {
+    const outletId = user.outletId;
 
     const page = 1;
     const limit = 100;
@@ -262,7 +254,7 @@ export class OrdersService {
     return response(200, 'OK', result);
   }
 
-  async getSummary(startDateParam: any, endDateParam: any, all: any, req: any) {
+  async getSummary(startDateParam: any, endDateParam: any, all: any, user: any) {
     dayjs.extend(utc);
     dayjs.extend(timezone);
 
@@ -273,7 +265,7 @@ export class OrdersService {
     let endDate: Dayjs = dayjs().tz('Asia/Jakarta').endOf('day').utc();
     let dayDiff = 1;
     const status = 'confirmed';
-    const outletId = req.user.outletId;
+    const outletId = user.outletId;
 
     // so far commonOpex dibagi 2 cabang (based on total cabang)
     const commonOpex = {
@@ -336,9 +328,8 @@ export class OrdersService {
     };
 
     // static handler on new branch, later on based on client payload
-    const customUserId = '07f59d84-d642-4913-a28d-85e2161e70f1';
     // @ts-ignore
-    if (req.user.id === customUserId) {
+    if (outletId === 2) {
       operational = {
         ...operational02,
       };
