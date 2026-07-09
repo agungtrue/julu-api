@@ -11,6 +11,7 @@ import {
 import { OrdersService } from './orders.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { v4 as uuidv4 } from 'uuid';
+import { CurrentUser } from '../common/decorators/current-user.decorator';
 
 @Controller('orders')
 export class OrdersController {
@@ -20,9 +21,9 @@ export class OrdersController {
   list(
     @Query('search') search: string,
     @Query('status') status: string,
-    @Request() req: any,
+    @CurrentUser() user: any,
   ): object {
-    return this.orderService.findAll(search, req, status);
+    return this.orderService.findAll(search, user, status);
   }
 
   @Get('/summary')
@@ -30,20 +31,21 @@ export class OrdersController {
     @Query('startDate') startDate: string,
     @Query('endDate') endDate: string,
     @Query('all') all: string,
-    @Request() req: any,
+    @CurrentUser() user: any,
   ): object {
-    return this.orderService.getSummary(startDate, endDate, all, req);
+    return this.orderService.getSummary(startDate, endDate, all, user);
   }
 
   @Post('/init')
   async init(
     @Body() body: CreateOrderDto,
     @Request() req: any,
+    @CurrentUser() user: any,
   ): Promise<object> {
     const uuid = uuidv4();
     body.uuid = uuid;
-    body.userId = req.user?.id || null;
-    body.outletId = req.user?.outletId || null;
+    body.userId = user?.id || null;
+    body.outletId = user?.outletId || null;
     await this.orderService.create(body);
 
     return { orderUuid: uuid };
