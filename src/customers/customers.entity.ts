@@ -15,7 +15,7 @@ import * as bcrypt from 'bcrypt';
 @Entity('customers')
 export class Customer {
   @PrimaryGeneratedColumn('uuid')
-  id: number;
+  id: string;
 
   @Column()
   first_name: string;

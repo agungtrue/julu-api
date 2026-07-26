@@ -5,17 +5,23 @@ import { Order } from './orders.entity';
 import { OrderItem } from 'src/order_items/order_items.entity';
 import { Product } from 'src/products/products.entity';
 import { Promotion } from 'src/promotions/promotions.entity';
+import { ProductIngredient } from 'src/ingredients/entities/product-ingredient.entity';
+import { Ingredient } from 'src/ingredients/entities/ingredient.entity';
 import { StatusType } from './enums/status.enum';
 import { response } from '../utils/response';
 import dayjs, { Dayjs } from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import timezone from 'dayjs/plugin/timezone';
+import { Tenant } from 'src/tenants/tenants.entity';
 
 @Injectable()
 export class OrdersService {
   constructor(
     @InjectRepository(Order) private orderRepo: Repository<Order>,
     @InjectRepository(Promotion) private promotionRepo: Repository<Promotion>,
+    @InjectRepository(Tenant) private tenantRepo: Repository<Tenant>,
+    @InjectRepository(Ingredient)
+    private ingredientRepo: Repository<Ingredient>,
     private dataSource: DataSource,
   ) {}
 
@@ -24,7 +30,7 @@ export class OrdersService {
     return this.orderRepo.save(order);
   }
 
-  async validate(uuid: any) {
+  async validate(uuid: string) {
     const order = await this.orderRepo.findOne({
       where: {
         uuid,
@@ -35,7 +41,7 @@ export class OrdersService {
     return !!order;
   }
 
-  async confirm(data: any) {
+  async confirm(data: any, user: any) {
     const { uuid, items } = data;
 
     return await this.dataSource.transaction(async (manager) => {
@@ -109,10 +115,34 @@ export class OrdersService {
           subtotal: subTotal,
           hasPromo: !!item.hasPromo,
           appliedPromoCount,
+          tenantId: user.tenantId,
         };
 
         // console.log({ payload })
         orderItems.push(manager.create(OrderItem, payload));
+
+        // update stock
+        const ingredientsNeed = await manager.find(ProductIngredient, {
+          where: { product_id: item.product_id, tenantId: user.tenantId },
+        });
+
+        for (const recipe of ingredientsNeed) {
+          const totalDeduction = recipe.qty_used * item.qty; // gramasi resep dikali jumlah qty beli
+          // console.log({ recipe, totalDeduction, product });
+
+          // Eksekusi pengurangan langsung di level query SQL untuk keamanan race condition
+          await manager
+            .createQueryBuilder()
+            .update(Ingredient)
+            .set({
+              stock: () => `stock - ${totalDeduction}`,
+            })
+            .where('id = :id AND tenantId = :tenantId', {
+              id: recipe.ingredient_id,
+              tenantId: user.tenantId,
+            })
+            .execute();
+        }
       }
 
       if (existingOrder.total !== calculatedTotal) {
@@ -132,7 +162,8 @@ export class OrdersService {
   }
 
   async findAll(search: any, user: any, status: any) {
-    const outletId = user.outletId;
+    const tenantId = user.tenantId; // field baru
+    // console.log({ tenantId });
 
     const page = 1;
     const limit = 100;
@@ -143,13 +174,14 @@ export class OrdersService {
       .leftJoinAndSelect('items.product', 'product')
       .leftJoinAndSelect('orders.customer', 'customer')
       .leftJoinAndSelect('orders.user', 'user')
-      .leftJoinAndSelect('orders.outlet', 'outlet')
+      .leftJoinAndSelect('orders.tenant', 'tenant')
       .select([
         'orders.id',
         'orders.total',
         'orders.createdAt',
         'orders.status',
         'orders.payment_method',
+        'orders.customerName',
         'items.id',
         'items.qty',
         'items.price',
@@ -164,13 +196,15 @@ export class OrdersService {
         'customer.last_name',
         'customer.phone',
         'user.name',
-        'outlet.name',
-        'outlet.branch',
+        'tenant.id',
+        'tenant.name',
+        'tenant.subdomain',
       ])
       .addSelect(
         `orders.createdAt AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Jakarta'`,
         'createdAtJakarta',
       )
+      .where('orders.tenantId = :tenantId', { tenantId })
       .orderBy('orders.createdAt', 'DESC')
       .take(limit)
       .skip(skip);
@@ -180,15 +214,15 @@ export class OrdersService {
     dayjs.extend(timezone);
 
     if (search === 'today') {
-      const startDate: Dayjs = dayjs().tz('Asia/Jakarta').startOf('day').utc();
-      const endDate: Dayjs = dayjs().tz('Asia/Jakarta').endOf('day').utc();
+      const startDate = dayjs().tz('Asia/Jakarta').startOf('day').toDate();
+      const endDate = dayjs().tz('Asia/Jakarta').endOf('day').toDate();
 
       query
         .where('orders.createdAt BETWEEN :start AND :end', {
           start: startDate,
           end: endDate,
         })
-        .andWhere('orders.outlet = :outletId', { outletId });
+        .andWhere('orders.tenantId = :tenantId', { tenantId });
     } else if (search) {
       query.where(
         'customer.first_name ILIKE :search OR customer.last_name ILIKE :search OR orders.status::text ILIKE :search',
@@ -254,90 +288,103 @@ export class OrdersService {
     return response(200, 'OK', result);
   }
 
-  async getSummary(startDateParam: any, endDateParam: any, all: any, user: any) {
+  async getSummary(
+    startDateParam: any,
+    endDateParam: any,
+    all: any,
+    user: any,
+  ) {
     dayjs.extend(utc);
     dayjs.extend(timezone);
 
     // let startDate = dayjs().tz('Asia/Jakarta').startOf('day').toDate();
     // let endDate = dayjs().tz('Asia/Jakarta').endOf('day').toDate();
-
+    // console.log('test', { user });
     let startDate: Dayjs = dayjs().tz('Asia/Jakarta').startOf('day').utc();
     let endDate: Dayjs = dayjs().tz('Asia/Jakarta').endOf('day').utc();
     let dayDiff = 1;
     const status = 'confirmed';
-    const outletId = user.outletId;
+    // const outletId = user.outletId;
+    const tenantId = user.tenantId;
+
+    // get from tenant.daily_opex
+    const tenantDailyOpex = await this.tenantRepo.findOne({
+      select: ['daily_opex'],
+      where: { id: tenantId },
+    });
 
     // so far commonOpex dibagi 2 cabang (based on total cabang)
-    const commonOpex = {
-      gopaySpeker: 1000,
-      gasElpiji: 734,
-      galonWater: 500,
-      galonWaterCleo: 1667,
-      tissue: 750,
-      plasticTrash: 500,
-      floorCleaner: 650,
-      cookingOil: 1334,
-      domain: 556,
-      systemFee: 7500, // vps & db
-    };
+    // const commonOpex = {
+    //   gopaySpeker: 1000,
+    //   gasElpiji: 734,
+    //   galonWater: 500,
+    //   galonWaterCleo: 1667,
+    //   tissue: 750,
+    //   plasticTrash: 500,
+    //   floorCleaner: 650,
+    //   cookingOil: 1334,
+    //   domain: 556,
+    //   systemFee: 7500, // vps & db
+    // };
 
-    const operational01 = {
-      employee: 80000, // new
-      managerialFee: 120000,
-      propertyRent: 70000, // vamos
-      propertyRent2: 0, // buffer for pay a rent full on next contract or totaly funding
-      prepaidElectricityToken1: 3500,
-      prepaidElectricityToken2: 0,
-      wifi: 0,
-      lostIceCalculated: 0,
-      bazar01: 0,
-      ...commonOpex,
-    };
-    const operational02 = {
-      // employee: 27000,
-      employee: 30000,
-      managerialFee: 30000,
-      propertyRent: 0,
-      propertyRent2: 0,
-      prepaidElectricityToken1: 0,
-      prepaidElectricityToken2: 0,
-      wifi: 0,
-      lostIceCalculated: 3000,
-      bazar01: 3000,
-      ...commonOpex,
-    };
+    // const operational01 = {
+    //   employee: 80000, // new
+    //   managerialFee: 120000,
+    //   propertyRent: 70000, // vamos
+    //   propertyRent2: 0, // buffer for pay a rent full on next contract or totaly funding
+    //   prepaidElectricityToken1: 3500,
+    //   prepaidElectricityToken2: 0,
+    //   wifi: 0,
+    //   lostIceCalculated: 0,
+    //   bazar01: 0,
+    //   ...commonOpex,
+    // };
 
-    let operational = {
-      // later on can add more payload data, based on a day operational
-      ...operational01,
-    };
+    // const operational02 = {
+    //   // employee: 27000,
+    //   employee: 30000,
+    //   managerialFee: 30000,
+    //   propertyRent: 0,
+    //   propertyRent2: 0,
+    //   prepaidElectricityToken1: 0,
+    //   prepaidElectricityToken2: 0,
+    //   wifi: 0,
+    //   lostIceCalculated: 3000,
+    //   bazar01: 3000,
+    //   ...commonOpex,
+    // };
+
+    // let operational = {
+    //   // later on can add more payload data, based on a day operational
+    //   ...operational01,
+    // };
 
     // to track fee staff for better saving from revenue
-    const feeStaff01 = {
-      staff: operational01.employee,
-      managerial: operational01.managerialFee,
-    };
+    // const feeStaff01 = {
+    //   staff: operational01.employee,
+    //   managerial: operational01.managerialFee,
+    // };
 
-    const feeStaff02 = {
-      staff: operational02.employee,
-      managerial: operational02.managerialFee,
-    };
+    // const feeStaff02 = {
+    //   staff: operational02.employee,
+    //   managerial: operational02.managerialFee,
+    // };
 
-    let feeStaff = {
-      ...feeStaff01,
-    };
+    // let feeStaff = {
+    //   ...feeStaff01,
+    // };
 
     // static handler on new branch, later on based on client payload
     // @ts-ignore
-    if (outletId === 2) {
-      operational = {
-        ...operational02,
-      };
+    // if (outletId === 2) {
+    //   operational = {
+    //     ...operational02,
+    //   };
 
-      feeStaff = {
-        ...feeStaff02,
-      };
-    }
+    //   feeStaff = {
+    //     ...feeStaff02,
+    //   };
+    // }
 
     // console.log({ user: req.user, operational })
 
@@ -347,23 +394,6 @@ export class OrdersService {
       dayDiff = endDate.diff(startDate, 'day') + 1;
     }
 
-    // make generic date, for report purpose
-    // const resultx = await this.orderRepo
-    // .createQueryBuilder('orders')
-    // .leftJoin('orders.items', 'items')
-    // .leftJoin('items.product', 'product')
-    // .select('COUNT(DISTINCT orders.id)', 'transactions')
-    // .addSelect('COALESCE(SUM(items.subtotal), 0)', 'revenues')
-    // .addSelect('COALESCE(SUM(items.subtotal) - SUM(product.cogs * items.qty), 0)', 'grossIncomes')
-    // .addSelect(`COALESCE(SUM(CASE WHEN product.type IN ('coffee','non_coffee') THEN items.qty ELSE 0 END), 0)`, 'cups')
-    // .addSelect(`COALESCE(SUM(CASE WHEN product.type = 'snacks' THEN items.qty ELSE 0 END), 0)`, 'snacks')
-    // .where('orders.createdAt BETWEEN :start AND :end', {
-    //   start: startDate.toDate(),
-    //   end: endDate.toDate(),
-    // })
-    // .andWhere('orders.status = :status', { status })
-    // .getRawOne();
-
     // manual count at code level
     const query = this.orderRepo
       .createQueryBuilder('orders')
@@ -371,12 +401,13 @@ export class OrdersService {
       .leftJoinAndSelect('items.product', 'product')
       .leftJoinAndSelect('orders.promo', 'promo')
       .leftJoinAndSelect('orders.user', 'users')
-      .leftJoinAndSelect('orders.outlet', 'outlet')
+      .leftJoinAndSelect('orders.tenant', 'tenant')
       .where('orders.createdAt BETWEEN :start AND :end', {
         start: startDate.toDate(),
         end: endDate.toDate(),
       })
       .andWhere('orders.status = :status', { status })
+      .andWhere('orders.tenantId = :tenantId', { tenantId })
       .select([
         'orders.id',
         'orders.total',
@@ -401,15 +432,9 @@ export class OrdersService {
         'users.name',
       ]);
 
-    if (!all) {
-      query.andWhere('orders.outlet = :outletId', { outletId });
-    } else {
-      const allOpex = this.sumOperationalCosts([operational01, operational02]);
-      operational = allOpex;
-
-      const allFeePassed = this.sumOperationalCosts([feeStaff01, feeStaff02]);
-      feeStaff = allFeePassed;
-    }
+    // if (!all) {
+    //   query.andWhere('orders.tenantId = :tenantId', { tenantId });
+    // }
 
     const orders = await query.getMany();
     const allItems = orders.flatMap((o) => o.items);
@@ -546,15 +571,16 @@ export class OrdersService {
       (acc, curr) => acc + curr.product.cogs * curr.qty,
       0,
     );
-    const operationalAmout = Object.values(operational).reduce(
-      (acc, curr) => acc + curr,
-      0,
-    );
+    // const operationalAmout = Object.values(operational).reduce(
+    //   (acc, curr) => acc + curr,
+    //   0,
+    // );
+    const operationalAmout = tenantDailyOpex?.daily_opex || 0;
 
-    const feeStaffAmout = Object.values(feeStaff).reduce(
-      (acc, curr) => acc + curr,
-      0,
-    );
+    // const feeStaffAmout = Object.values(feeStaff).reduce(
+    //   (acc, curr) => acc + curr,
+    //   0,
+    // );
 
     const freeItemAmount = orders.reduce((acc, curr) => {
       const isFree = curr.items.find(
@@ -657,6 +683,10 @@ export class OrdersService {
     let sortBestSellers: BestSellerItem[] = Object.values(bestSellers);
     sortBestSellers = sortBestSellers.sort((a, b) => b.count - a.count);
 
+    // console.log({ tenantDailyOpex, operationalAmout });
+
+    const lowStocks = await this.getLowStocks(tenantId);
+
     // later make a constant/var for reusable number/var
     const result = {
       transactions: orders.length,
@@ -676,6 +706,10 @@ export class OrdersService {
           (operationalAmout * dayDiff) /
           (((grossIncomes / revenues) * 100) / 100) /
           (revenues / totalCups),
+        targetSnackCount:
+          (operationalAmout * dayDiff) /
+          (((grossIncomes / revenues) * 100) / 100) /
+          (revenues / snacks),
         excessRevenueAmount:
           revenues -
           (operationalAmout * dayDiff) /
@@ -765,7 +799,7 @@ export class OrdersService {
         users: Object.values(itemsPerUsers),
       },
       feePassed: {
-        staff: feeStaffAmout * dayDiff,
+        // staff: feeStaffAmout * dayDiff,
         cup: 0,
         domain: 0,
       },
@@ -776,6 +810,7 @@ export class OrdersService {
         avgTransactionsPerDay: orders.length / dayDiff,
         avgRevPerDay: revenues / dayDiff,
       },
+      stockAlerts: lowStocks,
       // debug: allItems,
       // dbLevel: resultx
     };
@@ -1010,5 +1045,22 @@ export class OrdersService {
 
       return acc;
     }, {});
+  }
+
+  async getLowStocks(tenantId: string) {
+    const lowStockAlerts = await this.ingredientRepo
+      .createQueryBuilder('ingredient')
+      .select([
+        'ingredient.id',
+        'ingredient.name',
+        'ingredient.stock',
+        'ingredient.minimumStock',
+        'ingredient.unit',
+      ])
+      .where('ingredient.tenantId = :tenantId', { tenantId })
+      .andWhere('ingredient.stock <= ingredient.minimumStock')
+      .getMany();
+
+    return lowStockAlerts ?? [];
   }
 }

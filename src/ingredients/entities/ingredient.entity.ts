@@ -5,8 +5,12 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   OneToMany,
+  Index,
+  ManyToOne,
+  JoinColumn,
 } from 'typeorm';
 import { ProductIngredient } from './product-ingredient.entity';
+import { Tenant } from '../../tenants/tenants.entity';
 
 const numericTransformer = {
   to: (value: number) => value,
@@ -14,6 +18,7 @@ const numericTransformer = {
 };
 
 @Entity('ingredients')
+@Index(['tenantId'])
 export class Ingredient {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -48,8 +53,33 @@ export class Ingredient {
   })
   cost_per_unit: number;
 
+  @Column({
+    type: 'numeric',
+    precision: 12,
+    scale: 2,
+    default: 0,
+    transformer: numericTransformer,
+  })
+  stock: number;
+
+  @Column({
+    type: 'numeric',
+    precision: 12,
+    scale: 2,
+    default: 0,
+    transformer: numericTransformer,
+  })
+  minimumStock: number;
+
   @Column({ type: 'varchar', length: 20, default: 'GRAM' })
   unit: string;
+
+  @Column({ type: 'uuid', nullable: false })
+  tenantId: string;
+
+  @ManyToOne(() => Tenant, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'tenantId' })
+  tenant: Tenant;
 
   @OneToMany(
     () => ProductIngredient,

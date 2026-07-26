@@ -93,12 +93,19 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
+    console.log({ access });
+
     // generate token
     const payload = {
       type: dto.type,
       ...(dto.type === 'customer'
         ? { customerId: access.id }
-        : { userId: access.id, outletId: access.outletId }),
+        : {
+            userId: access.id,
+            outletId: access.outletId,
+            tenantId: access.tenantId,
+            userRole: access.role,
+          }),
     };
 
     const { access_token, refresh_token } = await this.generateTokens(payload);

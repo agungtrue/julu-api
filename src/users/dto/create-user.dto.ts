@@ -30,8 +30,18 @@ export class CreateUserDto {
   @IsString()
   password: string;
 
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  tenantId: string;
+
+  @ApiProperty()
+  @IsNotEmpty()
+  @IsString()
+  role: string;
+
   @ApiProperty({ default: true })
   @IsNotEmpty()
   @IsBoolean()
-  is_active?: boolean = true;
+  isActive?: boolean = true;
 }

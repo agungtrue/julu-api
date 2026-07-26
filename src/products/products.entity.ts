@@ -1,18 +1,28 @@
-import { Entity, PrimaryGeneratedColumn, OneToMany, Column } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  OneToMany,
+  Column,
+  Index,
+  ManyToOne,
+  JoinColumn,
+} from 'typeorm';
 import { OrderItem } from '../order_items/order_items.entity';
 import { ProductType } from './enums/product.enum';
 import { SizeType } from './enums/size.enum';
 import { ProductIngredient } from '../ingredients/entities/product-ingredient.entity';
-
+import { Tenant } from '../tenants/tenants.entity';
 @Entity('products')
+@Index(['tenantId'])
+@Index(['tenantId', 'id'])
 export class Product {
-  @PrimaryGeneratedColumn()
-  id: number;
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
   @Column()
   name: string;
 
-  @Column()
+  @Column({ type: 'integer' })
   price: number;
 
   @Column({
@@ -30,8 +40,15 @@ export class Product {
   @Column({ default: true })
   isActive: boolean;
 
-  @Column({ nullable: true })
+  @Column({ type: 'integer', nullable: true })
   cogs: number;
+
+  @Column({ type: 'uuid', nullable: false })
+  tenantId: string;
+
+  @ManyToOne(() => Tenant, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'tenantId' })
+  tenant: Tenant;
 
   @OneToMany(() => OrderItem, (item) => item.product, { cascade: true })
   orderItems: OrderItem[];
