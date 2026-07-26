@@ -9,7 +9,7 @@ export class AuthController {
 
   @Public()
   @Post('login')
-  async login(@Body() body: CreateCustomerDto) {
+  async login(@Body() body: any) {
     // validate user first
     return this.authService.login(body);
   }

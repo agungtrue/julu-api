@@ -11,8 +11,8 @@ import { Customer } from '../../customers/customers.entity';
 
 @Entity('refresh_tokens')
 export class RefreshToken {
-  @PrimaryGeneratedColumn()
-  id: number;
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
   @Column()
   user_type: 'user' | 'customer';

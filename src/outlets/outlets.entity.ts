@@ -10,8 +10,8 @@ import { User } from '../users/users.entity';
 
 @Entity('outlets')
 export class Outlet {
-  @PrimaryGeneratedColumn()
-  id: number;
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
   @Column()
   name: string;

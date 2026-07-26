@@ -6,9 +6,20 @@ import { Order } from './orders.entity';
 import { OrderItem } from '../order_items/order_items.entity';
 import { Outlet } from 'src/outlets/outlets.entity';
 import { Promotion } from 'src/promotions/promotions.entity';
+import { Tenant } from 'src/tenants/tenants.entity';
+import { Ingredient } from 'src/ingredients/entities/ingredient.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Order, OrderItem, Outlet, Promotion])],
+  imports: [
+    TypeOrmModule.forFeature([
+      Order,
+      OrderItem,
+      Outlet,
+      Promotion,
+      Tenant,
+      Ingredient,
+    ]),
+  ],
   providers: [OrdersService],
   controllers: [OrdersController],
 })
