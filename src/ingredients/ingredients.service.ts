@@ -28,35 +28,52 @@ export class IngredientsService {
     purchase_cost: number;
     conversion_factor: number;
     unit: string;
-  }) {
+  }, user: any) {
     if (data.conversion_factor <= 0)
       throw new BadRequestException('Faktor konversi harus lebih dari 0');
 
     // Hitung otomatis modal per unit takaran terkecil (gram/ml)
     const cost_per_unit = data.purchase_cost / data.conversion_factor;
 
+    const tenantId = user.tenantId
     const newIngredient = this.ingredientRepo.create({
       ...data,
       cost_per_unit,
+      tenantId,
     });
     return await this.ingredientRepo.save(newIngredient);
   }
 
-  async findAllIngredients() {
+  async findAllIngredients(user) {
     // Math.round(purchase_cost).toLocaleString('id-ID');
     // return await this.ingredientRepo.find({ orderBy: { name: 'ASC' } });
-    const data = await this.ingredientRepo.find({});
+    const tenantId = user.tenantId
+    console.log({ tenantId })
+    const data = await this.ingredientRepo.find({
+      where: {
+        tenantId
+      },
+    });
     return response(200, 'OK', [data]);
   }
 
   async updateIngredient(
     id: string,
-    data: { name?: string; purchase_cost?: number; conversion_factor?: number },
+    data: {
+      name?: string;
+      purchase_cost?: number;
+      conversion_factor?: number;
+      stock?: number;
+      minimumStock?: number;
+    },
   ) {
     const ingredient = await this.ingredientRepo.findOne({ where: { id } });
     if (!ingredient) throw new NotFoundException('Ingredient not found');
 
-    if (data.name) ingredient.name = data.name;
+    if (data?.name) ingredient.name = data.name;
+
+    if (data?.stock) ingredient.stock = data.stock;
+    if (data?.minimumStock) ingredient.minimumStock = data.minimumStock;
 
     // Jika ada perubahan harga beli atau faktor konversi, hitung ulang cost_per_unit
     if (
@@ -97,7 +114,7 @@ export class IngredientsService {
 
   // === 2. MESIN HITUNG FORMULA RESEP (SUBMIT HANDLER) ===
 
-  async getRecipeByProduct(product_id: number) {
+  async getRecipeByProduct(product_id: string) {
     const data = await this.productIngredientRepo.find({
       where: { product_id },
       relations: ['ingredient'],
@@ -106,14 +123,16 @@ export class IngredientsService {
   }
 
   async saveProductRecipe(
-    productId: number,
+    productId: string,
     ingredientsPayload: { ingredient_id: string; qty_used: number }[],
+    user: any,
   ) {
     const product = await this.productRepo.findOne({
       where: { id: productId },
     });
 
-    console.log({ product });
+    console.log({ product, user });
+
     if (!product) throw new NotFoundException('Product not found');
 
     // 2. Hapus susunan resep lama untuk produk ini (Overwriting system)
@@ -140,12 +159,11 @@ export class IngredientsService {
           ingredient_id: item.ingredient_id,
           qty_used: item.qty_used,
           sub_total_cost: sub_total_cost,
+          tenantId: product.tenantId,
         });
 
         newItems.push(recipeItem);
       }
-
-      console.log({ newItems });
 
       // Simpan bulk baris komposisi resep baru ke DB
       await this.productIngredientRepo.save(newItems);
@@ -160,7 +178,7 @@ export class IngredientsService {
     };
   }
 
-  private async syncSingleProductCogs(productId: number) {
+  private async syncSingleProductCogs(productId: string) {
     const currentRecipeItems = await this.productIngredientRepo.find({
       where: { product_id: productId },
     });

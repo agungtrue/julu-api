@@ -10,8 +10,8 @@ import { PromotionType } from './enums/promotion.enum';
 
 @Entity('promotions')
 export class Promotion {
-  @PrimaryGeneratedColumn()
-  id: number;
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
   @Column()
   name: string;
