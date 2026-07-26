@@ -19,24 +19,28 @@ export class CreateOrderDto {
   payment_method: string;
 
   @ApiProperty({ required: true })
-  @IsNumber()
-  // userId: string;
-  userId: number;
+  @IsString()
+  userId: string;
 
   @ApiProperty({ required: false })
   @IsOptional()
-  @IsNumber()
-  customerId: number;
+  @IsString()
+  customerId: string;
 
   @ApiProperty()
   @IsNotEmpty()
-  @IsNumber()
-  outletId: number;
+  @IsString()
+  outletId: string;
+
+  @ApiProperty()
+  @IsNotEmpty()
+  @IsString()
+  tenantId: string;
 
   @ApiProperty()
   @IsOptional()
-  @IsNumber()
-  promoId: number;
+  @IsString()
+  promoId: string;
 
   @ApiProperty()
   @IsNotEmpty()

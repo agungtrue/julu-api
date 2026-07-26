@@ -6,6 +6,7 @@ import {
   OneToMany,
   ManyToOne,
   CreateDateColumn,
+  Index,
 } from 'typeorm';
 import { Customer } from '../customers/customers.entity';
 import { User } from '../users/users.entity';
@@ -13,11 +14,14 @@ import { Promotion } from '../promotions/promotions.entity';
 import { Outlet } from '../outlets/outlets.entity';
 import { OrderItem } from '../order_items/order_items.entity';
 import { StatusType } from './enums/status.enum';
+import { Tenant } from '../tenants/tenants.entity';
 
 @Entity('orders')
+@Index(['tenantId'])
+@Index(['tenantId', 'id'])
 export class Order {
-  @PrimaryGeneratedColumn()
-  id: number;
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
   @OneToMany(() => OrderItem, (item) => item.order, { cascade: true })
   items: OrderItem[];
@@ -26,8 +30,8 @@ export class Order {
   @JoinColumn({ name: 'userId' })
   user: User;
 
-  @Column({ nullable: true })
-  userId: number;
+  @Column({ type: 'uuid', nullable: true })
+  userId: string;
 
   @ManyToOne(() => Customer, (customer) => customer.orders, {
     onDelete: 'SET NULL',
@@ -35,27 +39,34 @@ export class Order {
   @JoinColumn({ name: 'customerId' })
   customer: Customer;
 
-  @Column({ nullable: true })
-  customerId: number;
+  @Column({ type: 'uuid', nullable: true })
+  customerId: string;
+
+  @Column({ type: 'uuid', nullable: false })
+  tenantId: string;
+
+  @ManyToOne(() => Tenant, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'tenantId' })
+  tenant: Tenant;
 
   @ManyToOne(() => Outlet, (outlet) => outlet.order)
   @JoinColumn({ name: 'outletId' })
   outlet: Outlet;
 
-  @Column({ nullable: true })
-  outletId: number;
+  @Column({ type: 'uuid', nullable: true })
+  outletId: string;
 
   @ManyToOne(() => Promotion, (promo) => promo.orders, { onDelete: 'SET NULL' })
   @JoinColumn({ name: 'promoId' })
   promo: Promotion;
 
-  @Column({ nullable: true })
-  promoId: number;
+  @Column({ type: 'uuid', nullable: true })
+  promoId: string;
 
-  @Column()
+  @Column({ type: 'integer' })
   total: number;
 
-  @Column({ default: 'cash' })
+  @Column({ type: 'varchar', length: 30, default: 'cash' })
   payment_method: string;
 
   @Column({
@@ -65,9 +76,17 @@ export class Order {
   })
   status: StatusType;
 
-  @Column({ unique: true })
+  @Column({ type: 'uuid', unique: true })
   uuid: string;
 
-  @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+  @Column({
+    type: 'varchar',
+    length: 100,
+    nullable: true,
+    name: 'customer_name',
+  })
+  customerName: string;
+
+  @CreateDateColumn({ type: 'timestamp', name: 'created_at' })
   createdAt: Date;
 }

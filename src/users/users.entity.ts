@@ -1,5 +1,6 @@
 import {
   Entity,
+  Index,
   BeforeInsert,
   BeforeUpdate,
   PrimaryGeneratedColumn,
@@ -8,16 +9,20 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   ManyToOne,
+  JoinColumn,
 } from 'typeorm';
 import { RefreshToken } from '../auth/entities/refresh_tokens.entity';
 import { Outlet } from '../outlets/outlets.entity';
 import { Order } from '../orders/orders.entity';
+import { Tenant } from '../tenants/tenants.entity';
 import * as bcrypt from 'bcrypt';
 
 @Entity('users')
+@Index(['tenantId'])
+@Index(['tenantId', 'email'])
 export class User {
   @PrimaryGeneratedColumn('uuid')
-  id: number;
+  id: string;
 
   @Column()
   name: string;
@@ -31,8 +36,26 @@ export class User {
   @Column()
   phone: string;
 
+  @Column({ type: 'uuid', nullable: true })
+  tenantId: string;
+
   @Column({ default: true })
   isActive: boolean;
+
+  @Column({ type: 'varchar', length: 20, default: 'EMPLOYEE' })
+  role: string;
+
+  @Column({ default: true })
+  mustChangePassword: boolean;
+
+  @Column({ type: 'timestamp', nullable: true })
+  last_login: Date;
+
+  @Column({ type: 'varchar', length: 6, nullable: true })
+  pin: string;
+
+  @Column({ type: 'timestamp', nullable: true })
+  deleted_at: Date;
 
   @CreateDateColumn()
   created_at: Date;
@@ -51,6 +74,10 @@ export class User {
 
   @Column({ nullable: true })
   outletId: number;
+
+  @ManyToOne(() => Tenant, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'tenantId' })
+  tenant: Tenant;
 
   @BeforeInsert()
   @BeforeUpdate()

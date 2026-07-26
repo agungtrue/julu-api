@@ -6,10 +6,11 @@ import { Ingredient } from './entities/ingredient.entity';
 import { ProductIngredient } from './entities/product-ingredient.entity';
 import { ProductsModule } from '../products/products.module';
 import { Product } from '../products/products.entity';
+import { Tenant } from 'src/tenants/tenants.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Ingredient, ProductIngredient, Product]),
+    TypeOrmModule.forFeature([Ingredient, ProductIngredient, Product, Tenant]),
     ProductsModule,
   ],
   controllers: [IngredientsController],

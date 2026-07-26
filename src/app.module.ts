@@ -14,6 +14,9 @@ import { dbConfig, envMode } from '../db.config';
 import { AuthModule } from './auth/auth.module';
 import { PromotionsModule } from './promotions/promotions.module';
 import { IngredientsModule } from './ingredients/ingredients.module';
+import { TenantsModule } from './tenants/tenants.module';
+import { OpexModule } from './opex/opex.module';
+import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 
 console.log('app.module...', { envMode });
 
@@ -38,6 +41,9 @@ console.log('app.module...', { envMode });
     AuthModule,
     PromotionsModule,
     IngredientsModule,
+    TenantsModule,
+    OpexModule,
+    SubscriptionsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

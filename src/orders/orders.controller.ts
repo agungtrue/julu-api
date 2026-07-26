@@ -12,8 +12,10 @@ import { OrdersService } from './orders.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { v4 as uuidv4 } from 'uuid';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
+import { RequireSubscription } from '../common/decorators/require-subscription.decorator';
 
 @Controller('orders')
+@RequireSubscription()
 export class OrdersController {
   constructor(private readonly orderService: OrdersService) {}
 
@@ -38,24 +40,40 @@ export class OrdersController {
 
   @Post('/init')
   async init(
-    @Body() body: CreateOrderDto,
+    @Body() body: any,
     @Request() req: any,
     @CurrentUser() user: any,
   ): Promise<object> {
+    if (user?.userRole === 'SUPER_ADMIN') {
+      throw new HttpException(
+        'You cannot perform this action',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
     const uuid = uuidv4();
     body.uuid = uuid;
     body.userId = user?.id || null;
     body.outletId = user?.outletId || null;
+    body.tenantId = user?.tenantId || null;
+    console.log('ok...');
     await this.orderService.create(body);
 
     return { orderUuid: uuid };
   }
 
   @Post('/confirm')
-  async confirm(@Body() body: CreateOrderDto): Promise<object> {
+  async confirm(@Body() body: any, @CurrentUser() user: any): Promise<object> {
+    if (user?.userRole === 'SUPER_ADMIN') {
+      throw new HttpException(
+        'You cannot perform this action',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
     const isValid = await this.orderService.validate(body.uuid);
     if (isValid) {
-      return await this.orderService.confirm(body);
+      return await this.orderService.confirm(body, user);
     }
 
     throw new HttpException('Order not found!', HttpStatus.NOT_FOUND);
