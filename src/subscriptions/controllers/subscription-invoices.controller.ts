@@ -12,10 +12,10 @@ import {
 import { SubscriptionInvoicesService } from '../services/subscription-invoices.service';
 import { CheckoutInvoiceDto } from '../dto/checkout-invoice.dto';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import { RequireSubscription } from '../../common/decorators/require-subscription.decorator';
+// import { RequireSubscription } from '../../common/decorators/require-subscription.decorator';
 
 @Controller('subscription-invoices')
-@RequireSubscription()
+// @RequireSubscription()
 export class SubscriptionInvoicesController {
   constructor(private readonly invoicesService: SubscriptionInvoicesService) {}
 

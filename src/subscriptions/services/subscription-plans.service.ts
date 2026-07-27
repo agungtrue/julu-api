@@ -73,6 +73,7 @@ export class SubscriptionPlansService {
         duration: '1 Bulan',
         savings: 'Harga Coret Promo',
         tag: '',
+        isRecommended: false,
       };
       const BASE_MONTHLY_NORMAL_PRICE = 149000;
 
@@ -82,6 +83,7 @@ export class SubscriptionPlansService {
           adjust.duration = '1 bulan';
           adjust.savings = 'Hemat Rp 60.000';
           adjust.tag = 'COCOK UNTUK UJI COBA';
+          adjust.isRecommended = false;
           break;
 
         case PlanCycle.QUARTERLY:
@@ -89,6 +91,7 @@ export class SubscriptionPlansService {
           adjust.duration = '3 bulan';
           adjust.savings = 'Hemat Rp 198.000';
           adjust.tag = 'HEMAT 1 BULAN';
+          adjust.isRecommended = true;
           break;
 
         case PlanCycle.SEMI_ANNUALLY:
@@ -96,6 +99,7 @@ export class SubscriptionPlansService {
           adjust.duration = '6 bulan';
           adjust.savings = 'Hemat Rp 445.000';
           adjust.tag = 'HEMAT 3 BULAN';
+          adjust.isRecommended = false;
           break;
 
         case PlanCycle.YEARLY:
@@ -103,6 +107,7 @@ export class SubscriptionPlansService {
           adjust.duration = '12 bulan';
           adjust.savings = 'Hemat Rp 989.000';
           adjust.tag = 'HEMAT 6 BULAN';
+          adjust.isRecommended = false;
           break;
 
         case PlanCycle.DAILY:
