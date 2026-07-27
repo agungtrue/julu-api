@@ -230,31 +230,6 @@ export class OrdersService {
       );
     }
 
-    // switch (query.search) {
-    //   case 'currentMonth':
-    //     start = dayjs().tz('Asia/Jakarta').startOf('month').format();
-    //     end = dayjs().tz('Asia/Jakarta').endOf('month').format();
-    //     break;
-
-    //   case 'today':
-    //     start = dayjs().tz('Asia/Jakarta').startOf('day').format();
-    //     end = dayjs().tz('Asia/Jakarta').endOf('day').format();
-    //     break;
-
-    //   default:
-    //     if (query.startDate && query.endDate) {
-    //       start = dayjs(query.startDate).tz('Asia/Jakarta').startOf('day').format();
-    //       end = dayjs(query.endDate).tz('Asia/Jakarta').endOf('day').format();
-    //     } else if (query.startDate) {
-    //       start = dayjs(query.startDate).tz('Asia/Jakarta').startOf('day').format();
-    //       end = dayjs(query.startDate).tz('Asia/Jakarta').endOf('day').format();
-    //     } else {
-    //       // Default to today
-    //       start = dayjs().tz('Asia/Jakarta').startOf('day').format();
-    //       end = dayjs().tz('Asia/Jakarta').endOf('day').format();
-    //     }
-    // }
-
     const mapPayload = (payload) => {
       // so far handling adjustedPrice on order detail
       let itemPrice = payload.total;
@@ -306,12 +281,6 @@ export class OrdersService {
     const status = 'confirmed';
     // const outletId = user.outletId;
     const tenantId = user.tenantId;
-
-    // get from tenant.daily_opex
-    const tenantDailyOpex = await this.tenantRepo.findOne({
-      select: ['daily_opex'],
-      where: { id: tenantId },
-    });
 
     // so far commonOpex dibagi 2 cabang (based on total cabang)
     // const commonOpex = {
@@ -373,18 +342,6 @@ export class OrdersService {
     // let feeStaff = {
     //   ...feeStaff01,
     // };
-
-    // static handler on new branch, later on based on client payload
-    // @ts-ignore
-    // if (outletId === 2) {
-    //   operational = {
-    //     ...operational02,
-    //   };
-
-    //   feeStaff = {
-    //     ...feeStaff02,
-    //   };
-    // }
 
     // console.log({ user: req.user, operational })
 
@@ -575,7 +532,7 @@ export class OrdersService {
     //   (acc, curr) => acc + curr,
     //   0,
     // );
-    const operationalAmout = tenantDailyOpex?.daily_opex || 0;
+    const operationalAmout = user?.subscription?.tenant?.daily_opex || 0;
 
     // const feeStaffAmout = Object.values(feeStaff).reduce(
     //   (acc, curr) => acc + curr,
@@ -689,6 +646,7 @@ export class OrdersService {
 
     // later make a constant/var for reusable number/var
     const result = {
+      tenantSubscription: user?.subscription || null,
       transactions: orders.length,
       revenues,
       // revenuesConsistencyIndex
