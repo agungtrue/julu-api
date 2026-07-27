@@ -20,10 +20,10 @@ export class UsersService {
 
   create(data: Partial<CreateUserDto>, user: any) {
     const { password, ...entityData } = data;
+    // check user exist first
     const newUser = this.repo.create({
       ...entityData,
       password_hash: password,
-      // ...(user?.tenantId && { tenantId: user.tenantId }),
     });
     return this.repo.save(newUser);
   }
@@ -83,6 +83,8 @@ export class UsersService {
       .createQueryBuilder('users')
       .leftJoinAndSelect('users.outlet', 'outlet')
       .leftJoinAndSelect('users.tenant', 'tenant')
+      .leftJoinAndSelect('tenant.subscriptions', 'subscription')
+      .leftJoinAndSelect('subscription.plan', 'plan')
       .select([
         'users.id',
         'users.email',
@@ -98,8 +100,19 @@ export class UsersService {
         'tenant.id',
         'tenant.name',
         'tenant.subdomain',
+        'subscription.id',
+        'subscription.status',
+        'subscription.createdAt',
+        'subscription.startDate',
+        'subscription.endDate',
+        'plan.id',
+        'plan.name',
+        'plan.durationDays',
+        'plan.monthsCount',
+        'plan.price',
       ])
-      .where({ id: payload.id });
+      .where({ id: payload.id })
+      .orderBy('subscription.createdAt', 'DESC');
 
     return response(200, 'OK', await query.getMany());
   }
