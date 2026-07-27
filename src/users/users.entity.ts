@@ -27,13 +27,13 @@ export class User {
   @Column()
   name: string;
 
-  @Column()
+  @Column({ unique: true })
   email: string;
 
   @Column()
   password_hash: string;
 
-  @Column()
+  @Column({ unique: true })
   phone: string;
 
   @Column({ type: 'uuid', nullable: true })
