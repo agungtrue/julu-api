@@ -43,6 +43,26 @@ export class CreateOrderDto {
   promoId: string;
 
   @ApiProperty()
+  @IsOptional()
+  @IsNumber()
+  paidAmount: number;
+
+  @ApiProperty()
+  @IsOptional()
+  @IsNumber()
+  changeAmount: number;
+
+  @ApiProperty()
+  @IsOptional()
+  @IsString()
+  invoiceNo: string;
+
+  @ApiProperty()
+  @IsOptional()
+  @IsString()
+  orderType: string;
+
+  @ApiProperty()
   @IsNotEmpty()
   @IsString()
   uuid: string;

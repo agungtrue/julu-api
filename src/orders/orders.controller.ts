@@ -8,6 +8,9 @@ import {
   HttpStatus,
   Request,
   Res,
+  Delete,
+  HttpCode,
+  Param,
 } from '@nestjs/common';
 import { OrdersService } from './orders.service';
 import { CreateOrderDto } from './dto/create-order.dto';
@@ -70,8 +73,7 @@ export class OrdersController {
     body.userId = user?.id || null;
     body.outletId = user?.outletId || null;
     body.tenantId = user?.tenantId || null;
-    console.log('ok...');
-    await this.orderService.create(body);
+    await this.orderService.create(body, user);
 
     return { orderUuid: uuid };
   }
@@ -126,5 +128,12 @@ export class OrdersController {
       summaryData,
       res,
     );
+  }
+
+  @Delete(':id')
+  @HttpCode(HttpStatus.OK)
+  async deleteOrder(@Param('id') id: string, @CurrentUser() user: any) {
+    const tenantId = user?.tenantId;
+    return await this.orderService.deleteOrder(id, tenantId);
   }
 }
