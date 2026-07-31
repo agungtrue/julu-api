@@ -18,6 +18,15 @@ export class Tenant {
   @Column({ type: 'varchar', length: 100 })
   name: string;
 
+  @Column({ type: 'varchar', length: 10, unique: true, nullable: true })
+  code: string;
+
+  @Column({ type: 'text', nullable: true })
+  address: string;
+
+  @Column({ type: 'varchar', length: 20, nullable: true })
+  phone: string;
+
   @Column({ type: 'varchar', length: 50, unique: true })
   subdomain: string;
 
@@ -26,6 +35,14 @@ export class Tenant {
 
   @Column({ type: 'int4', default: 0 })
   daily_opex: number;
+
+  @Column({
+    type: 'varchar',
+    length: 255,
+    nullable: true,
+    default: 'Terima kasih atas kunjungan Anda!',
+  })
+  receiptFooter: string;
 
   @CreateDateColumn({ type: 'timestamp' })
   created_at: Date;

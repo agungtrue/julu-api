@@ -1,6 +1,11 @@
-import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
+import {
+  Injectable,
+  HttpException,
+  HttpStatus,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, DataSource } from 'typeorm';
+import { Repository, DataSource, Raw } from 'typeorm';
 import { Order } from './orders.entity';
 import { OrderItem } from 'src/order_items/order_items.entity';
 import { Product } from 'src/products/products.entity';
@@ -8,12 +13,10 @@ import { Promotion } from 'src/promotions/promotions.entity';
 import { ProductIngredient } from 'src/ingredients/entities/product-ingredient.entity';
 import { Ingredient } from 'src/ingredients/entities/ingredient.entity';
 import { StatusType } from './enums/status.enum';
-import { response } from '../utils/response';
 import dayjs, { Dayjs } from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import timezone from 'dayjs/plugin/timezone';
 import { Tenant } from 'src/tenants/tenants.entity';
-import * as Workbook from 'exceljs';
 import { Response } from 'express';
 import * as ExcelJS from 'exceljs';
 
@@ -28,8 +31,12 @@ export class OrdersService {
     private dataSource: DataSource,
   ) {}
 
-  async create(data: Partial<Order>) {
-    const order = this.orderRepo.create(data);
+  async create(data: Partial<Order>, user: any) {
+    const invNo = await this.generateInvoiceNo(
+      data.tenantId,
+      user?.subscription?.tenant?.[0]?.code,
+    );
+    const order = this.orderRepo.create({ ...data, invoiceNo: invNo });
     return this.orderRepo.save(order);
   }
 
@@ -160,7 +167,22 @@ export class OrdersService {
       await manager.save(orderItems);
 
       existingOrder.status = StatusType.CONFIRMED;
-      return await manager.save(existingOrder);
+
+      // console.log({ existingOrder });
+      await manager.save(existingOrder);
+
+      const newestOrder = {
+        order: {
+          ...existingOrder,
+          changeAmount: Number(existingOrder.changeAmount),
+          paidAmount: Number(existingOrder.paidAmount),
+          items: orderItems,
+        },
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        user,
+      };
+
+      return newestOrder;
     });
   }
 
@@ -792,7 +814,7 @@ export class OrdersService {
       // dbLevel: resultx
     };
 
-    return result
+    return result;
 
     // return response(200, 'OK', [result]);
   }
@@ -1026,6 +1048,26 @@ export class OrdersService {
     }, {});
   }
 
+  async deleteOrder(id: string, tenantId: string) {
+    const order = await this.orderRepo.findOne({
+      where: { id, tenantId },
+    });
+
+    if (!order) {
+      throw new NotFoundException(
+        'Transaksi tidak ditemukan atau akses ditolak.',
+      );
+    }
+
+    await this.orderRepo.delete(id);
+
+    return {
+      status: 200,
+      message: 'Transaksi berhasil dihapus',
+      deletedId: id,
+    };
+  }
+
   async getLowStocks(tenantId: string) {
     const lowStockAlerts = await this.ingredientRepo
       .createQueryBuilder('ingredient')
@@ -1092,11 +1134,11 @@ export class OrdersService {
       cell.font = { bold: true, color: { argb: 'FFFFFF' } };
     });
 
-    const summaryData = summaryPayload
-    const totalRevenue = summaryData.revenues
-    const totalTransactions = summaryData.transactions
+    const summaryData = summaryPayload;
+    const totalRevenue = summaryData.revenues;
+    const totalTransactions = summaryData.transactions;
 
-    const avgOrderValue = summaryData.transactionMetrics?.avgTransactionValue
+    const avgOrderValue = summaryData.transactionMetrics?.avgTransactionValue;
 
     const rowRev = summarySheet.addRow([
       'Total Pendapatan Kotor (Gross)',
@@ -1135,9 +1177,9 @@ export class OrdersService {
     });
 
     // Misal summaryData mengembalikan breakdown pembayaran atau dikalkulasi dari orders
-    const cashTotal = summaryData.paymentMethods?.amounts?.cash
-    const qrisTotal = summaryData.paymentMethods?.amounts?.qris
-    const transferTotal = 0
+    const cashTotal = summaryData.paymentMethods?.amounts?.cash;
+    const qrisTotal = summaryData.paymentMethods?.amounts?.qris;
+    const transferTotal = 0;
 
     const rowCash = summarySheet.addRow([
       'Tunai (Cash)',
@@ -1288,5 +1330,21 @@ export class OrdersService {
 
     await workbook.xlsx.write(res);
     res.end();
+  }
+
+  async generateInvoiceNo(
+    tenantId: string,
+    tenantCode: string = 'JULU',
+  ): Promise<string> {
+    const today = dayjs().format('YYYYMMDD');
+    const countToday = await this.orderRepo.count({
+      where: {
+        tenantId,
+        createdAt: Raw((alias) => `DATE(${alias}) = CURRENT_DATE`),
+      },
+    });
+
+    const sequence = String(countToday + 1).padStart(4, '0'); // e.g., 0001
+    return `${tenantCode}-${today}-${sequence}`; // JULU-20260731-0001
   }
 }
