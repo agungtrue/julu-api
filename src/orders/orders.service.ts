@@ -13,6 +13,9 @@ import dayjs, { Dayjs } from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import timezone from 'dayjs/plugin/timezone';
 import { Tenant } from 'src/tenants/tenants.entity';
+import * as Workbook from 'exceljs';
+import { Response } from 'express';
+import * as ExcelJS from 'exceljs';
 
 @Injectable()
 export class OrdersService {
@@ -161,7 +164,7 @@ export class OrdersService {
     });
   }
 
-  async findAll(search: any, user: any, status: any) {
+  async findAll(search: any, user: any, startDate: any, endDate: any) {
     const tenantId = user.tenantId; // field baru
     // console.log({ tenantId });
 
@@ -228,6 +231,14 @@ export class OrdersService {
         'customer.first_name ILIKE :search OR customer.last_name ILIKE :search OR orders.status::text ILIKE :search',
         { search: `%${search}%` },
       );
+    } else if (startDate && endDate) {
+      const start = dayjs(startDate).tz('Asia/Jakarta').startOf('day').toDate();
+      const end = dayjs(endDate).tz('Asia/Jakarta').endOf('day').toDate();
+
+      query.andWhere('orders.createdAt BETWEEN :start AND :end', {
+        start: start,
+        end: end,
+      });
     }
 
     const mapPayload = (payload) => {
@@ -260,7 +271,15 @@ export class OrdersService {
       }),
     );
 
-    return response(200, 'OK', result);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+    return result;
+
+    // if (startDate && endDate) {
+    //   // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+    //   return result;
+    // }
+
+    // return response(200, 'OK', result);
   }
 
   async getSummary(
@@ -773,7 +792,9 @@ export class OrdersService {
       // dbLevel: resultx
     };
 
-    return response(200, 'OK', [result]);
+    return result
+
+    // return response(200, 'OK', [result]);
   }
 
   async applyPromo(payload: any) {
@@ -1020,5 +1041,252 @@ export class OrdersService {
       .getMany();
 
     return lowStockAlerts ?? [];
+  }
+
+  async generateSalesExcel(
+    tenantName: string,
+    dateRangeLabel: string,
+    orders: any[],
+    summaryPayload: any, //Data dari fungsi getSummary()
+    res: Response,
+  ) {
+    const workbook = new ExcelJS.Workbook();
+    workbook.creator = 'Julu POS';
+
+    // =========================================================================
+    // SHEET 1: RINGKASAN & METRUK PENJUALAN
+    // =========================================================================
+    const summarySheet = workbook.addWorksheet('Ringkasan & Metrik');
+
+    // Header Informasi
+    const generatedAt = dayjs().format('DD/MM/YYYY HH:mm') + ' WIB';
+    summarySheet.addRow([`RINGKASAN PERFORMA - ${tenantName.toUpperCase()}`]);
+    summarySheet.addRow([`PERIODE: ${dateRangeLabel}`]);
+    summarySheet.addRow([`TANGGAL CETAK: ${generatedAt}`]);
+    summarySheet.addRow([]); // Blank row
+
+    summarySheet.getCell('A1').font = {
+      bold: true,
+      size: 14,
+      color: { argb: '00796B' },
+    };
+    summarySheet.getCell('A2').font = {
+      size: 10,
+      bold: true,
+      color: { argb: '444444' },
+    };
+    summarySheet.getCell('A3').font = {
+      size: 10,
+      italic: true,
+      color: { argb: '666666' },
+    };
+
+    // SECTION 1: RINGKASAN UTAMA (KPI CARDS)
+    const kpiHeader = summarySheet.addRow(['METRIK UTAMA', 'VALUASI']);
+    kpiHeader.eachCell((cell) => {
+      cell.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: '00796B' },
+      };
+      cell.font = { bold: true, color: { argb: 'FFFFFF' } };
+    });
+
+    const summaryData = summaryPayload
+    const totalRevenue = summaryData.revenues
+    const totalTransactions = summaryData.transactions
+
+    const avgOrderValue = summaryData.transactionMetrics?.avgTransactionValue
+
+    const rowRev = summarySheet.addRow([
+      'Total Pendapatan Kotor (Gross)',
+      totalRevenue,
+    ]);
+    const rowTx = summarySheet.addRow([
+      'Total Transaksi Selesai',
+      `${totalTransactions} Transaksi`,
+    ]);
+    const rowAvg = summarySheet.addRow([
+      'Rata-rata Nilai Transaksi (AOV)',
+      avgOrderValue,
+    ]);
+
+    rowRev.getCell(2).numFmt = '"Rp "#,##0';
+    rowRev.getCell(2).font = { bold: true };
+
+    rowTx.getCell(2).numFmt = '#,##0" Transaksi"';
+    rowAvg.getCell(2).numFmt = '"Rp "#,##0';
+
+    summarySheet.addRow([]); // Blank row
+
+    // SECTION 2: BREAKDOWN METODE PEMBAYARAN
+    const payHeader = summarySheet.addRow([
+      'METODE PEMBAYARAN',
+      'TOTAL NOMINAL',
+      'PORSI',
+    ]);
+    payHeader.eachCell((cell) => {
+      cell.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: '00796B' },
+      };
+      cell.font = { bold: true, color: { argb: 'FFFFFF' } };
+    });
+
+    // Misal summaryData mengembalikan breakdown pembayaran atau dikalkulasi dari orders
+    const cashTotal = summaryData.paymentMethods?.amounts?.cash
+    const qrisTotal = summaryData.paymentMethods?.amounts?.qris
+    const transferTotal = 0
+
+    const rowCash = summarySheet.addRow([
+      'Tunai (Cash)',
+      cashTotal,
+      totalRevenue ? cashTotal / totalRevenue : 0,
+    ]);
+    const rowQris = summarySheet.addRow([
+      'QRIS / E-Wallet',
+      qrisTotal,
+      totalRevenue ? qrisTotal / totalRevenue : 0,
+    ]);
+    // const rowTrf = summarySheet.addRow([
+    //   'Transfer Bank',
+    //   transferTotal,
+    //   totalRevenue ? transferTotal / totalRevenue : 0,
+    // ]);
+
+    [rowCash, rowQris].forEach((row) => {
+      row.getCell(2).numFmt = '"Rp "#,##0';
+      row.getCell(3).numFmt = '0.0%'; // Format Persentase
+    });
+
+    // Formatting Lebar Kolom Sheet 1
+    summarySheet.columns = [{ width: 35 }, { width: 25 }, { width: 15 }];
+
+    // =========================================================================
+    // SHEET 2: DETAIL TRANSAKSI
+    // =========================================================================
+    const detailSheet = workbook.addWorksheet('Rincian Transaksi');
+
+    // Header Detail Transaksi
+    detailSheet.addRow([`RINCIAN TRANSAKSI - ${tenantName.toUpperCase()}`]);
+    detailSheet.addRow([`PERIODE: ${dateRangeLabel}`]);
+    detailSheet.addRow([]);
+
+    detailSheet.getCell('A1').font = {
+      bold: true,
+      size: 14,
+      color: { argb: '00796B' },
+    };
+    detailSheet.getCell('A2').font = {
+      size: 10,
+      bold: true,
+      color: { argb: '444444' },
+    };
+
+    const detailHeader = detailSheet.addRow([
+      'ID Transaksi',
+      'Waktu Transaksi',
+      'Kasir',
+      'Pelanggan',
+      'Rincian Menu Dibeli',
+      'Total Qty',
+      'Metode Bayar',
+      'Status',
+      'Total Penjualan',
+    ]);
+
+    detailHeader.eachCell((cell) => {
+      cell.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: '00796B' },
+      };
+      cell.font = { bold: true, color: { argb: 'FFFFFF' }, size: 11 };
+      cell.alignment = { vertical: 'middle', horizontal: 'center' };
+    });
+
+    // Populate Orders Data
+    let grandTotalSum = 0;
+    let grandTotalQty = 0;
+
+    orders.forEach((order) => {
+      const orderTotal = Number(order.totalAdjustedPrice || order.total || 0);
+      grandTotalSum += orderTotal;
+
+      const totalQty = Array.isArray(order.items)
+        ? order.items.reduce(
+            (sum: number, item: any) => sum + (item.qty || 0),
+            0,
+          )
+        : 0;
+      grandTotalQty += totalQty;
+
+      const itemSummary = Array.isArray(order.items)
+        ? order.items
+            .map((i: any) => `${i.product?.name || 'Item'} (${i.qty}x)`)
+            .join(', ')
+        : '-';
+
+      const row = detailSheet.addRow([
+        order.id.slice(0, 8).toUpperCase(),
+        dayjs(order.createdAt).format('DD/MM/YYYY HH:mm'),
+        order.user?.name || 'Kasir',
+        order.customerName || 'Walk-in Customer',
+        itemSummary,
+        totalQty,
+        (order.payment_method || 'CASH').toUpperCase(),
+        (order.status || 'CONFIRMED').toUpperCase(),
+        orderTotal,
+      ]);
+
+      row.getCell(1).alignment = { horizontal: 'center' };
+      row.getCell(2).alignment = { horizontal: 'center' };
+      row.getCell(6).alignment = { horizontal: 'center' };
+      row.getCell(7).alignment = { horizontal: 'center' };
+      row.getCell(8).alignment = { horizontal: 'center' };
+      row.getCell(9).numFmt = '"Rp "#,##0';
+    });
+
+    // Footer Sheet 2
+    detailSheet.addRow([]);
+    const totalRow = detailSheet.addRow([
+      '',
+      '',
+      '',
+      '',
+      'TOTAL KESELURUHAN:',
+      grandTotalQty,
+      '',
+      '',
+      grandTotalSum,
+    ]);
+    totalRow.getCell(5).font = { bold: true };
+    totalRow.getCell(6).font = { bold: true };
+    totalRow.getCell(9).font = { bold: true, color: { argb: '00796B' } };
+    totalRow.getCell(9).numFmt = '"Rp "#,##0';
+
+    detailSheet.columns = [
+      { width: 16 },
+      { width: 20 },
+      { width: 18 },
+      { width: 20 },
+      { width: 38 },
+      { width: 12 },
+      { width: 16 },
+      { width: 14 },
+      { width: 22 },
+    ];
+
+    // Stream Response
+    const filename = `Laporan_Sales_${tenantName.replace(/\s+/g, '_')}.xlsx`;
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    );
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+
+    await workbook.xlsx.write(res);
+    res.end();
   }
 }
