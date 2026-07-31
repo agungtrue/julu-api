@@ -44,6 +44,9 @@ export class OrderItem {
   @Column({ type: 'integer', default: 0 })
   appliedPromoCount: number;
 
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  note: string;
+
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   createdAt: Date;
 

@@ -87,6 +87,22 @@ export class Order {
   })
   customerName: string;
 
+  @Column({ type: 'varchar', length: 50, unique: true, nullable: true })
+  invoiceNo: string; // e.g., JULU-20260731-0001
+
+  @Column({
+    type: 'enum',
+    enum: ['DINE_IN', 'TAKEAWAY', 'DELIVERY'],
+    default: 'DINE_IN',
+  })
+  orderType: string;
+
+  @Column({ type: 'bigint', default: 0 })
+  paidAmount: number;
+
+  @Column({ type: 'bigint', default: 0 })
+  changeAmount: number;
+
   @CreateDateColumn({ type: 'timestamp', name: 'created_at' })
   createdAt: Date;
 }
