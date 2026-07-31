@@ -105,6 +105,7 @@ export class AuthService {
             outletId: access.outletId,
             tenantId: access.tenantId,
             userRole: access.role,
+            name: access.name,
           }),
     };
 
