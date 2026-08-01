@@ -207,6 +207,7 @@ export class OrdersService {
         'orders.status',
         'orders.payment_method',
         'orders.customerName',
+        'orders.invoiceNo',
         'items.id',
         'items.qty',
         'items.price',
@@ -1227,7 +1228,7 @@ export class OrdersService {
     };
 
     const detailHeader = detailSheet.addRow([
-      'ID Transaksi',
+      'No faktur',
       'Waktu Transaksi',
       'Kasir',
       'Pelanggan',
@@ -1271,7 +1272,7 @@ export class OrdersService {
         : '-';
 
       const row = detailSheet.addRow([
-        order.id.slice(0, 8).toUpperCase(),
+        order.invoiceNo,
         dayjs(order.createdAt).format('DD/MM/YYYY HH:mm'),
         order.user?.name || 'Kasir',
         order.customerName || 'Walk-in Customer',
