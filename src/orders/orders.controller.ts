@@ -111,7 +111,7 @@ export class OrdersController {
     const tenantId = user.subscription.tenantId;
     const tenantName = user.subscription.tenant.name;
 
-    console.log({ tenantId, tenantName, startDate, endDate });
+    // console.log({ tenantId, tenantName, startDate, endDate });
 
     const [orders, summaryData] = await Promise.all([
       this.orderService.findAll(null, user, startDate, endDate),
