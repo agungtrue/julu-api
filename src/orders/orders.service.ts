@@ -34,7 +34,7 @@ export class OrdersService {
   async create(data: Partial<Order>, user: any) {
     const invNo = await this.generateInvoiceNo(
       data.tenantId,
-      user?.subscription?.tenant?.[0]?.code,
+      user?.subscription?.tenant?.code,
     );
     const order = this.orderRepo.create({ ...data, invoiceNo: invNo });
     return this.orderRepo.save(order);
