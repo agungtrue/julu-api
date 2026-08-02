@@ -17,6 +17,7 @@ import { IngredientsModule } from './ingredients/ingredients.module';
 import { TenantsModule } from './tenants/tenants.module';
 import { OpexModule } from './opex/opex.module';
 import { SubscriptionsModule } from './subscriptions/subscriptions.module';
+import { ScheduleModule } from '@nestjs/schedule';
 
 console.log('app.module...', { envMode });
 
@@ -32,6 +33,7 @@ console.log('app.module...', { envMode });
       }),
     }),
     TypeOrmModule.forRoot(dbConfig()),
+    ScheduleModule.forRoot(),
     ProductsModule,
     UsersModule,
     OrdersModule,
