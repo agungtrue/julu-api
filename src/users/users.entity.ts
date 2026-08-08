@@ -15,6 +15,7 @@ import { RefreshToken } from '../auth/entities/refresh_tokens.entity';
 import { Outlet } from '../outlets/outlets.entity';
 import { Order } from '../orders/orders.entity';
 import { Tenant } from '../tenants/tenants.entity';
+import { IngredientMutation } from '../ingredient-mutations/entities/ingredient-mutation.entity'
 import * as bcrypt from 'bcrypt';
 
 @Entity('users')
@@ -78,6 +79,9 @@ export class User {
   @ManyToOne(() => Tenant, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'tenantId' })
   tenant: Tenant;
+
+  @OneToMany(() => IngredientMutation, (mutation) => mutation.user)
+  mutations: IngredientMutation[];
 
   @BeforeInsert()
   @BeforeUpdate()

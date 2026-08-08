@@ -93,7 +93,16 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    console.log({ access });
+    await this.userRepo.update(access.id, {
+      last_login: new Date(),
+    });
+
+    console.log({
+      access: {
+        name: access.name,
+        role: access.role,
+      },
+    });
 
     // generate token
     const payload = {
