@@ -18,6 +18,7 @@ import { TenantsModule } from './tenants/tenants.module';
 import { OpexModule } from './opex/opex.module';
 import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 import { ScheduleModule } from '@nestjs/schedule';
+import { IngredientMutationsModule } from './ingredient-mutations/ingredient-mutations.module';
 
 console.log('app.module...', { envMode });
 
@@ -46,6 +47,7 @@ console.log('app.module...', { envMode });
     TenantsModule,
     OpexModule,
     SubscriptionsModule,
+    IngredientMutationsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

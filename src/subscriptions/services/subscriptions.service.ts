@@ -30,7 +30,6 @@ export class SubscriptionsService {
    * 1. Ambil Status Langganan Aktif milik Tenant saat ini
    */
   async getTenantSubscription(tenantId: string): Promise<Subscription> {
-    console.log({ tenantId });
     const subscription = await this.subRepo.findOne({
       where: { tenantId },
       relations: ['plan', 'tenant'],
