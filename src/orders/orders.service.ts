@@ -12,6 +12,7 @@ import { Product } from 'src/products/products.entity';
 import { Promotion } from 'src/promotions/promotions.entity';
 import { ProductIngredient } from 'src/ingredients/entities/product-ingredient.entity';
 import { Ingredient } from 'src/ingredients/entities/ingredient.entity';
+import { IngredientMutationService } from 'src/ingredient-mutations/ingredient-mutations.service';
 import { StatusType } from './enums/status.enum';
 import dayjs, { Dayjs } from 'dayjs';
 import utc from 'dayjs/plugin/utc';
@@ -29,6 +30,7 @@ export class OrdersService {
     @InjectRepository(Ingredient)
     private ingredientRepo: Repository<Ingredient>,
     private dataSource: DataSource,
+    private readonly ingredientsMutationService: IngredientMutationService,
   ) {}
 
   async create(data: Partial<Order>, user: any) {
@@ -141,17 +143,27 @@ export class OrdersService {
           // console.log({ recipe, totalDeduction, product });
 
           // Eksekusi pengurangan langsung di level query SQL untuk keamanan race condition
-          await manager
-            .createQueryBuilder()
-            .update(Ingredient)
-            .set({
-              stock: () => `stock - ${totalDeduction}`,
-            })
-            .where('id = :id AND tenantId = :tenantId', {
-              id: recipe.ingredient_id,
-              tenantId: user.tenantId,
-            })
-            .execute();
+          // await manager
+          //   .createQueryBuilder()
+          //   .update(Ingredient)
+          //   .set({
+          //     stock: () => `stock - ${totalDeduction}`,
+          //   })
+          //   .where('id = :id AND tenantId = :tenantId', {
+          //     id: recipe.ingredient_id,
+          //     tenantId: user.tenantId,
+          //   })
+          //   .execute();
+
+          // stock usage
+          await this.ingredientsMutationService.recordUsageOut(
+            user.tenantId,
+            user.id,
+            recipe.ingredient_id,
+            totalDeduction,
+            existingOrder.invoiceNo,
+            manager,
+          );
         }
       }
 
@@ -320,9 +332,22 @@ export class OrdersService {
     let startDate: Dayjs = dayjs().tz('Asia/Jakarta').startOf('day').utc();
     let endDate: Dayjs = dayjs().tz('Asia/Jakarta').endOf('day').utc();
     let dayDiff = 1;
+
+    if (startDateParam && endDateParam) {
+      startDate = dayjs.tz(startDateParam, 'Asia/Jakarta').startOf('day').utc();
+      endDate = dayjs.tz(endDateParam, 'Asia/Jakarta').endOf('day').utc();
+      dayDiff = endDate.diff(startDate, 'day') + 1;
+    }
+
     const status = 'confirmed';
     // const outletId = user.outletId;
     const tenantId = user.tenantId;
+    const lossMutation = await this.ingredientsMutationService.getLossMutation(
+      tenantId,
+      startDateParam,
+      endDateParam,
+      'dashboard',
+    );
 
     // so far commonOpex dibagi 2 cabang (based on total cabang)
     // const commonOpex = {
@@ -386,12 +411,6 @@ export class OrdersService {
     // };
 
     // console.log({ user: req.user, operational })
-
-    if (startDateParam && endDateParam) {
-      startDate = dayjs.tz(startDateParam, 'Asia/Jakarta').startOf('day').utc();
-      endDate = dayjs.tz(endDateParam, 'Asia/Jakarta').endOf('day').utc();
-      dayDiff = endDate.diff(startDate, 'day') + 1;
-    }
 
     // manual count at code level
     const query = this.orderRepo
@@ -733,6 +752,7 @@ export class OrdersService {
             (((grossIncomes / revenues) * 100) / 100)),
         opexEfficiencyRatio: grossIncomes / (operationalAmout * dayDiff),
       },
+      lossMutation,
       opex: {
         dateRangeCount: dayDiff,
         dailyAmount: operationalAmout * dayDiff, // calculate by dayDiff

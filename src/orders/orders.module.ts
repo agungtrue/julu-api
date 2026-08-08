@@ -8,7 +8,7 @@ import { Outlet } from 'src/outlets/outlets.entity';
 import { Promotion } from 'src/promotions/promotions.entity';
 import { Tenant } from 'src/tenants/tenants.entity';
 import { Ingredient } from 'src/ingredients/entities/ingredient.entity';
-
+import { IngredientMutationsModule } from 'src/ingredient-mutations/ingredient-mutations.module';
 @Module({
   imports: [
     TypeOrmModule.forFeature([
@@ -19,6 +19,7 @@ import { Ingredient } from 'src/ingredients/entities/ingredient.entity';
       Tenant,
       Ingredient,
     ]),
+    IngredientMutationsModule,
   ],
   providers: [OrdersService],
   controllers: [OrdersController],

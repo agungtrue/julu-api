@@ -4,7 +4,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, EntityManager } from 'typeorm';
 import { Ingredient } from './entities/ingredient.entity';
 import { ProductIngredient } from './entities/product-ingredient.entity';
 import { Product } from '../products/products.entity';
@@ -23,19 +23,22 @@ export class IngredientsService {
     private productRepo: Repository<Product>,
   ) {}
 
-  async createIngredient(data: {
-    name: string;
-    purchase_cost: number;
-    conversion_factor: number;
-    unit: string;
-  }, user: any) {
+  async createIngredient(
+    data: {
+      name: string;
+      purchase_cost: number;
+      conversion_factor: number;
+      unit: string;
+    },
+    user: any,
+  ) {
     if (data.conversion_factor <= 0)
       throw new BadRequestException('Faktor konversi harus lebih dari 0');
 
     // Hitung otomatis modal per unit takaran terkecil (gram/ml)
     const cost_per_unit = data.purchase_cost / data.conversion_factor;
 
-    const tenantId = user.tenantId
+    const tenantId = user.tenantId;
     const newIngredient = this.ingredientRepo.create({
       ...data,
       cost_per_unit,
@@ -47,11 +50,10 @@ export class IngredientsService {
   async findAllIngredients(user) {
     // Math.round(purchase_cost).toLocaleString('id-ID');
     // return await this.ingredientRepo.find({ orderBy: { name: 'ASC' } });
-    const tenantId = user.tenantId
-    console.log({ tenantId })
+    const tenantId = user.tenantId;
     const data = await this.ingredientRepo.find({
       where: {
-        tenantId
+        tenantId,
       },
     });
     return response(200, 'OK', [data]);
@@ -131,7 +133,7 @@ export class IngredientsService {
       where: { id: productId },
     });
 
-    console.log({ product, user });
+    // console.log({ product, user });
 
     if (!product) throw new NotFoundException('Product not found');
 
@@ -178,33 +180,67 @@ export class IngredientsService {
     };
   }
 
-  private async syncSingleProductCogs(productId: string) {
-    const currentRecipeItems = await this.productIngredientRepo.find({
+  public async syncSingleProductCogs(
+    productId: string,
+    manager?: EntityManager,
+  ) {
+    const recipeRepo = manager
+      ? manager.getRepository(ProductIngredient)
+      : this.productIngredientRepo;
+
+    const productRepo = manager
+      ? manager.getRepository(Product)
+      : this.productRepo;
+
+    const currentRecipeItems = await recipeRepo.find({
       where: { product_id: productId },
     });
 
+    // console.log({ currentRecipeItems });
+
     const finalCogs = currentRecipeItems.reduce(
-      (acc, item) => acc + item.sub_total_cost,
+      (acc, item) => acc + Number(item.sub_total_cost || 0),
       0,
     );
 
-    await this.productRepo.update(productId, { cogs: Math.ceil(finalCogs) });
+    // console.log({ finalCogs });
+
+    await productRepo.update(productId, { cogs: Math.ceil(finalCogs) });
   }
 
   // Fungsi pengunci skala besar jika ada kenaikan harga bahan supplier
-  private async triggerGlobalCogsRecalculation(ingredientId: string) {
-    const affectedRecipes = await this.productIngredientRepo.find({
+  public async triggerGlobalCogsRecalculation(
+    ingredientId: string,
+    newWacCostPerUnit?: number,
+    manager?: EntityManager,
+  ) {
+    const recipeRepo = manager
+      ? manager.getRepository(ProductIngredient)
+      : this.productIngredientRepo;
+
+    const affectedRecipes = await recipeRepo.find({
       where: { ingredient_id: ingredientId },
       relations: ['ingredient'],
     });
 
-    console.log({ ingredientId, affectedRecipes });
+    // console.log({ ingredientId, affectedRecipes, newWacCostPerUnit });
 
     if (affectedRecipes.length === 0) return;
 
     for (const item of affectedRecipes) {
-      item.sub_total_cost = item.qty_used * item.ingredient.cost_per_unit;
-      await this.productIngredientRepo.save(item);
+      // console.log({ item });
+      const costPerUnit =
+        newWacCostPerUnit !== undefined
+          ? newWacCostPerUnit
+          : Number(item.ingredient.cost_per_unit || 0);
+      // item.sub_total_cost = item.qty_used * item.ingredient.cost_per_unit;
+      item.sub_total_cost = Math.round(Number(item.qty_used) * costPerUnit);
+      await recipeRepo.save(item);
+
+      // const newSubTotalCost = Math.round(Number(item.qty_used) * costPerUnit);
+      // await recipeRepo.update(item.id, {
+      //   sub_total_cost: newSubTotalCost,
+      // });
     }
 
     const uniqueProductIds = Array.from(
@@ -212,7 +248,7 @@ export class IngredientsService {
     );
 
     for (const productId of uniqueProductIds) {
-      await this.syncSingleProductCogs(productId);
+      await this.syncSingleProductCogs(productId, manager);
     }
   }
 }

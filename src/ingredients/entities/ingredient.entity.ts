@@ -10,6 +10,7 @@ import {
   JoinColumn,
 } from 'typeorm';
 import { ProductIngredient } from './product-ingredient.entity';
+import { IngredientMutation } from '../../ingredient-mutations/entities/ingredient-mutation.entity';
 import { Tenant } from '../../tenants/tenants.entity';
 
 const numericTransformer = {
@@ -86,6 +87,9 @@ export class Ingredient {
     (productIngredient) => productIngredient.ingredient,
   )
   productIngredients: ProductIngredient[];
+
+  @OneToMany(() => IngredientMutation, (mutation) => mutation.ingredient)
+  mutations: IngredientMutation[];
 
   @CreateDateColumn({ type: 'timestamp' })
   created_at: Date;
