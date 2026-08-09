@@ -612,7 +612,8 @@ export class OrdersService {
     const grossRevenues = orders.reduce((acc, curr) => acc + curr.total, 0);
     const revenues = grossRevenues - freeItemAmount - discountAmount;
     const grossIncomes = revenues - totalCOGS;
-    const netIncomes = grossIncomes - operationalAmout * dayDiff;
+    const lossAmount = Math.abs(Number(lossMutation?.totalNominal || 0));
+    const netIncomes = grossIncomes - lossAmount - operationalAmout * dayDiff;
 
     // console.log({ grossRevenues, freeItemAmount, discountAmount })
 
