@@ -11,6 +11,11 @@ import { Ingredient } from '../../ingredients/entities/ingredient.entity';
 import { User } from '../../users/users.entity';
 import { StockMutationType } from '../stock-mutation-type.enum';
 
+const numericTransformer = {
+  to: (value: number) => value,
+  from: (value: string) => parseFloat(value) || 0,
+};
+
 @Entity('ingredient_mutations')
 @Index(['tenantId', 'ingredientId'])
 @Index(['tenantId', 'createdAt'])
@@ -51,10 +56,22 @@ export class IngredientMutation {
   @Column({ type: 'decimal', precision: 12, scale: 2 })
   currentStock: number;
 
-  @Column({ type: 'bigint', default: 0 })
+  @Column({
+    type: 'numeric',
+    precision: 12,
+    scale: 2,
+    default: 0,
+    transformer: numericTransformer,
+  })
   cost_per_unit: number;
 
-  @Column({ type: 'bigint', default: 0 })
+  @Column({
+    type: 'numeric',
+    precision: 12,
+    scale: 2,
+    default: 0,
+    transformer: numericTransformer,
+  })
   totalCost: number;
 
   // Referensi (e.g., ID Order / No. Invoice Supplier)
