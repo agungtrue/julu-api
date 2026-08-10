@@ -103,6 +103,9 @@ export class Order {
   @Column({ type: 'bigint', default: 0 })
   changeAmount: number;
 
+  @Column({ type: 'jsonb', nullable: true, default: {} })
+  metadata: Record<string, any>;
+
   @CreateDateColumn({ type: 'timestamp', name: 'created_at' })
   createdAt: Date;
 }

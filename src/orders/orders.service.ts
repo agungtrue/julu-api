@@ -179,6 +179,7 @@ export class OrdersService {
       await manager.save(orderItems);
 
       existingOrder.status = StatusType.CONFIRMED;
+      delete existingOrder.metadata.items;
 
       // console.log({ existingOrder });
       await manager.save(existingOrder);
@@ -220,6 +221,8 @@ export class OrdersService {
         'orders.payment_method',
         'orders.customerName',
         'orders.invoiceNo',
+        'orders.uuid',
+        'orders.metadata',
         'items.id',
         'items.qty',
         'items.price',
