@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, DataSource, Raw } from 'typeorm';
+import { Repository, DataSource, Like, Between } from 'typeorm';
 import { Order } from './orders.entity';
 import { OrderItem } from 'src/order_items/order_items.entity';
 import { Product } from 'src/products/products.entity';
@@ -1361,15 +1361,35 @@ export class OrdersService {
     tenantId: string,
     tenantCode: string = 'JULU',
   ): Promise<string> {
-    const today = dayjs().format('YYYYMMDD');
-    const countToday = await this.orderRepo.count({
+    const todayStr = dayjs().format('YYYYMMDD');
+
+    const startOfDay = dayjs().startOf('day').toDate();
+    const endOfDay = dayjs().endOf('day').toDate();
+
+    const lastOrder = await this.orderRepo.findOne({
       where: {
         tenantId,
-        createdAt: Raw((alias) => `DATE(${alias}) = CURRENT_DATE`),
+        createdAt: Between(startOfDay, endOfDay),
+        invoiceNo: Like(`${tenantCode}-${todayStr}-%`),
+      },
+      order: {
+        invoiceNo: 'DESC', // Ambil yang paling besar
       },
     });
 
-    const sequence = String(countToday + 1).padStart(4, '0'); // e.g., 0001
-    return `${tenantCode}-${today}-${sequence}`; // JULU-20260731-0001
+    let nextSequence = 1;
+
+    if (lastOrder && lastOrder.invoiceNo) {
+      const parts = lastOrder.invoiceNo.split('-');
+      const lastSeqStr = parts[parts.length - 1];
+      const lastSeq = parseInt(lastSeqStr, 10);
+
+      if (!isNaN(lastSeq)) {
+        nextSequence = lastSeq + 1;
+      }
+    }
+
+    const sequence = String(nextSequence).padStart(4, '0');
+    return `${tenantCode}-${todayStr}-${sequence}`;
   }
 }
