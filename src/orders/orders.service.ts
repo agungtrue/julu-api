@@ -12,6 +12,8 @@ import { Product } from 'src/products/products.entity';
 import { Promotion } from 'src/promotions/promotions.entity';
 import { ProductIngredient } from 'src/ingredients/entities/product-ingredient.entity';
 import { Ingredient } from 'src/ingredients/entities/ingredient.entity';
+import { IngredientMutation } from 'src/ingredient-mutations/entities/ingredient-mutation.entity';
+import { StockMutationType } from 'src/ingredient-mutations/stock-mutation-type.enum';
 import { IngredientMutationService } from 'src/ingredient-mutations/ingredient-mutations.service';
 import { StatusType } from './enums/status.enum';
 import dayjs, { Dayjs } from 'dayjs';
@@ -161,7 +163,7 @@ export class OrdersService {
             user.id,
             recipe.ingredient_id,
             totalDeduction,
-            existingOrder.invoiceNo,
+            existingOrder.id,
             manager,
           );
         }
@@ -1073,7 +1075,7 @@ export class OrdersService {
     }, {});
   }
 
-  async deleteOrder(id: string, tenantId: string) {
+  async deleteOrder(id: string, tenantId: string, userId: string) {
     const order = await this.orderRepo.findOne({
       where: { id, tenantId },
     });
@@ -1084,7 +1086,9 @@ export class OrdersService {
       );
     }
 
-    await this.orderRepo.delete(id);
+    if (await this.orderRepo.delete(id)) {
+      await this.rollbackOrderStock(order.id, tenantId, userId);
+    }
 
     return {
       status: 200,
@@ -1391,5 +1395,59 @@ export class OrdersService {
 
     const sequence = String(nextSequence).padStart(4, '0');
     return `${tenantCode}-${todayStr}-${sequence}`;
+  }
+
+  async rollbackOrderStock(orderId: string, tenantId: string, userId: string) {
+    return await this.dataSource.transaction(async (manager) => {
+      // Ambil log mutasi 'OUT' dari order yang mau dibatalkan/diubah
+      const outboundMutations = await manager.find(IngredientMutation, {
+        where: {
+          referenceId: orderId,
+          tenantId,
+          type: StockMutationType.USAGE_OUT,
+        },
+      });
+
+      if (!outboundMutations.length) return;
+
+      for (const mutation of outboundMutations) {
+        // Lock row bahan di tabel master ingredients biar gak ada race condition
+        const ingredient = await manager.findOne(Ingredient, {
+          where: { id: mutation.ingredientId, tenantId },
+          lock: { mode: 'pessimistic_write' }, // Mencegah dua kasir update barengan
+        });
+
+        if (!ingredient) continue;
+
+        const previousStock = Number(ingredient.stock);
+        const rollbackQuantity = Number(mutation.quantity);
+        const newStock = previousStock + rollbackQuantity;
+
+        console.log({ previousStock, rollbackQuantity, newStock });
+
+        // UPDATE kolom `stock` di tabel master `ingredients`
+        await manager.update(Ingredient, ingredient.id, {
+          stock: newStock,
+          updated_at: new Date(),
+        });
+
+        // INSERT log pembalik (Reversal) di tabel `ingredient_mutations`
+        const reversalLog = manager.create(IngredientMutation, {
+          tenantId,
+          ingredientId: ingredient.id,
+          type: StockMutationType.CANCEL,
+          quantity: rollbackQuantity,
+          previousStock: previousStock,
+          currentStock: newStock,
+          referenceId: orderId,
+          notes: 'Pengembalian stok oleh pembatalan pesanan',
+          cost_per_unit: ingredient.cost_per_unit,
+          totalCost: rollbackQuantity * Number(ingredient.cost_per_unit),
+          createdById: userId,
+        });
+
+        await manager.save(IngredientMutation, reversalLog);
+      }
+    });
   }
 }
