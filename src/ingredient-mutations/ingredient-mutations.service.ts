@@ -6,6 +6,7 @@ import {
 import { DataSource, EntityManager } from 'typeorm';
 import { Ingredient } from '../ingredients/entities/ingredient.entity';
 import { IngredientMutation } from './entities/ingredient-mutation.entity';
+import { Order } from '../orders/orders.entity';
 import { StockMutationType } from './stock-mutation-type.enum';
 import { RestockIngredientDto } from './dto/restock-ingredient.dto';
 import { RecordLossDto } from './dto/record-loss.dto';
@@ -26,7 +27,7 @@ export class IngredientMutationService {
    * 1. RESTOCK IN (Barang Masuk & Hitung Ulang HPP)
    */
   async restock(tenantId: string, userId: string, dto: RestockIngredientDto) {
-    console.log({ tenantId, userId, dto });
+    // console.log({ tenantId, userId, dto });
     //  return true
     return await this.dataSource.transaction(async (manager) => {
       const ingredient = await manager.findOne(Ingredient, {
@@ -51,7 +52,7 @@ export class IngredientMutationService {
         );
       }
 
-      console.log({ updatedUnitPrice });
+      // console.log({ updatedUnitPrice });
 
       // Update Table Master Ingredient
       ingredient.stock = currentStock;
@@ -94,7 +95,7 @@ export class IngredientMutationService {
    * 2. RECORD LOSS (Barang Basi, Tumpah, Rusak)
    */
   async recordLoss(tenantId: string, userId: string, dto: RecordLossDto) {
-    console.log({ tenantId, userId, dto });
+    // console.log({ tenantId, userId, dto });
     return await this.dataSource.transaction(async (manager) => {
       const ingredient = await manager.findOne(Ingredient, {
         where: { id: dto.ingredientId, tenantId },
@@ -237,18 +238,24 @@ export class IngredientMutationService {
       ingredient.stock = currentStock;
       await manager.save(ingredient);
 
+      const order = await manager.findOne(Order, {
+        where: { id: orderReferenceId },
+      });
+
+      if (!order) throw new NotFoundException('Order tidak ditemukan!');
+
       // Record Log Mutasi
       const mutation = manager.create(IngredientMutation, {
         tenantId,
         ingredientId: ingredient.id,
         type: StockMutationType.USAGE_OUT,
-        quantity: -deductQty,
+        quantity: deductQty,
         previousStock,
         currentStock,
         cost_per_unit: ingredient.cost_per_unit,
         totalCost: deductQty * Number(ingredient.cost_per_unit || 0),
         referenceId: orderReferenceId,
-        notes: `Otomatis dari Order #${orderReferenceId}`,
+        notes: `Otomatis dari Order #${order.invoiceNo}`,
         createdById: userId,
       });
 
@@ -272,7 +279,7 @@ export class IngredientMutationService {
     ingredientId?: string,
     type?: StockMutationType,
   ) {
-    console.log({ tenantId, ingredientId, type });
+    // console.log({ tenantId, ingredientId, type });
     const query = this.dataSource
       .getRepository(IngredientMutation)
       .createQueryBuilder('log')
@@ -299,7 +306,7 @@ export class IngredientMutationService {
     endDate?: string,
     from?: string,
   ) {
-    console.log({ tenantId, startDate, endDate, from });
+    // console.log({ tenantId, startDate, endDate, from });
     dayjs.extend(utc);
     dayjs.extend(timezone);
 

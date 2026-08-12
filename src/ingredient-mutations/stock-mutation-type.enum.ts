@@ -3,4 +3,5 @@ export enum StockMutationType {
   USAGE_OUT = 'USAGE_OUT', // Barang keluar otomatis via checkout order kasir
   LOSS = 'LOSS', // Basi, tumpah, rusak, expired, hilang
   ADJUSTMENT = 'ADJUSTMENT', // Selisih penyesuaian dari Stock Opname
+  CANCEL = 'CANCEL',
 }
