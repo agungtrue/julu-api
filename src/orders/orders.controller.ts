@@ -134,6 +134,7 @@ export class OrdersController {
   @HttpCode(HttpStatus.OK)
   async deleteOrder(@Param('id') id: string, @CurrentUser() user: any) {
     const tenantId = user?.tenantId;
-    return await this.orderService.deleteOrder(id, tenantId);
+    const userId = user?.id;
+    return await this.orderService.deleteOrder(id, tenantId, userId);
   }
 }
