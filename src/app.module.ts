@@ -19,6 +19,7 @@ import { OpexModule } from './opex/opex.module';
 import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { IngredientMutationsModule } from './ingredient-mutations/ingredient-mutations.module';
+import { DashboardModule } from './dashboard/dashboard.module';
 
 console.log('app.module...', { envMode });
 
@@ -48,6 +49,7 @@ console.log('app.module...', { envMode });
     OpexModule,
     SubscriptionsModule,
     IngredientMutationsModule,
+    DashboardModule,
   ],
   controllers: [AppController],
   providers: [AppService],
