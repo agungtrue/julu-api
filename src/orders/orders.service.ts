@@ -272,13 +272,15 @@ export class OrdersService {
         { search: `%${search}%` },
       );
     } else if (startDate && endDate) {
-      const start = dayjs(startDate).tz('Asia/Jakarta').startOf('day').toDate();
-      const end = dayjs(endDate).tz('Asia/Jakarta').endOf('day').toDate();
+      const start = dayjs.tz(startDate, 'Asia/Jakarta').startOf('day').toDate();
+      const end = dayjs.tz(endDate, 'Asia/Jakarta').endOf('day').toDate();
 
-      query.andWhere('orders.createdAt BETWEEN :start AND :end', {
-        start: start,
-        end: end,
-      });
+      query
+        .andWhere('orders.createdAt BETWEEN :start AND :end', {
+          start: start,
+          end: end,
+        })
+        .andWhere('orders.status = :status', { status: 'confirmed' });
     }
 
     const mapPayload = (payload) => {
@@ -594,16 +596,7 @@ export class OrdersService {
       (acc, curr) => acc + curr.product.cogs * curr.qty,
       0,
     );
-    // const operationalAmout = Object.values(operational).reduce(
-    //   (acc, curr) => acc + curr,
-    //   0,
-    // );
     const operationalAmout = user?.subscription?.tenant?.daily_opex || 0;
-
-    // const feeStaffAmout = Object.values(feeStaff).reduce(
-    //   (acc, curr) => acc + curr,
-    //   0,
-    // );
 
     const freeItemAmount = orders.reduce((acc, curr) => {
       const isFree = curr.items.find(
@@ -716,7 +709,6 @@ export class OrdersService {
       tenantSubscription: user?.subscription || null,
       transactions: orders.length,
       revenues,
-      // revenuesConsistencyIndex
       grossIncomes,
       breakEvenRevenue: {
         targetAmount:
