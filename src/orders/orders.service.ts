@@ -206,7 +206,7 @@ export class OrdersService {
     // console.log({ tenantId });
 
     const page = 1;
-    const limit = 100;
+    const limit = 100; // bug for report, coz limit here
     const skip = (page - 1) * limit;
     const query = this.orderRepo
       .createQueryBuilder('orders')
