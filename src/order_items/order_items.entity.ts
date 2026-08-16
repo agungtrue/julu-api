@@ -12,6 +12,8 @@ import { Tenant } from '../tenants/tenants.entity';
 
 @Entity('order_items')
 @Index(['tenantId'])
+@Index(['order'])
+@Index(['product'])
 export class OrderItem {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -46,6 +48,9 @@ export class OrderItem {
 
   @Column({ type: 'varchar', length: 255, nullable: true })
   note: string;
+
+  @Column({ type: 'integer', nullable: true, name: 'cogs_at_purchase' })
+  cogsAtPurchase: number;
 
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   createdAt: Date;

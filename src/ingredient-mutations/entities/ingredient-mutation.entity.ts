@@ -84,6 +84,6 @@ export class IngredientMutation {
   @Column({ type: 'uuid', nullable: true })
   createdById: string;
 
-  @CreateDateColumn()
+  @CreateDateColumn({ type: 'timestamp', name: 'created_at' })
   createdAt: Date;
 }
