@@ -18,7 +18,7 @@ import { Tenant } from '../tenants/tenants.entity';
 
 @Entity('orders')
 @Index(['tenantId'])
-@Index(['tenantId', 'id'])
+@Index(['tenantId', 'createdAt', 'status'])
 export class Order {
   @PrimaryGeneratedColumn('uuid')
   id: string;
