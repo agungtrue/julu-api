@@ -129,6 +129,7 @@ export class OrdersService {
           subtotal: subTotal,
           hasPromo: !!item.hasPromo,
           appliedPromoCount,
+          cogsAtPurchase: product.cogs,
           tenantId: user.tenantId,
         };
 
@@ -231,6 +232,7 @@ export class OrdersService {
         'items.subtotal',
         'items.hasPromo',
         'items.adjustedPrice',
+        'items.cogsAtPurchase',
         'product.id',
         'product.name',
         'product.type',

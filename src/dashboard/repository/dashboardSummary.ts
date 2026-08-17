@@ -9,8 +9,12 @@ export const dashboardSummaryQuery = `
             SUM(CASE WHEN p.type = 'snacks' THEN oi.qty ELSE 0 END) AS snack_qty,
             SUM(oi.qty) AS item_qty
           FROM order_items oi
+          JOIN orders o ON o.id = oi.order_id
           LEFT JOIN products p ON p.id = oi.product_id
           WHERE oi."tenantId" = $1
+            AND o.status = 'confirmed'
+            AND o.created_at >= $2
+            AND o.created_at <= $3
           GROUP BY oi.order_id
         ),
         order_summary AS (
