@@ -33,7 +33,7 @@ export class OrdersController {
     @Query('endDate') endDate: string,
     @CurrentUser() user: any,
   ): Promise<object> {
-    console.log({ startDate, endDate });
+    // console.log({ startDate, endDate });
     const orders = await this.orderService.findAll(search, user, null, null);
 
     if (startDate && endDate) {
