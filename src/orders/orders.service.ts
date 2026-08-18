@@ -1118,6 +1118,9 @@ export class OrdersService {
     const workbook = new ExcelJS.Workbook();
     workbook.creator = 'Julu POS';
 
+    dayjs.extend(utc);
+    dayjs.extend(timezone);
+
     // =========================================================================
     // SHEET 1: RINGKASAN & METRUK PENJUALAN
     // =========================================================================
@@ -1295,7 +1298,7 @@ export class OrdersService {
 
       const row = detailSheet.addRow([
         order.invoiceNo,
-        dayjs(order.createdAt).format('DD/MM/YYYY HH:mm'),
+        dayjs(order.createdAt).tz('Asia/Jakarta').format('DD/MM/YYYY HH:mm'),
         order.user?.name || 'Kasir',
         order.customerName || 'Walk-in Customer',
         itemSummary,
@@ -1359,10 +1362,14 @@ export class OrdersService {
     tenantId: string,
     tenantCode: string = 'JULU',
   ): Promise<string> {
+    dayjs.extend(utc);
+    dayjs.extend(timezone);
+
+    const nowWib = dayjs().tz('Asia/Jakarta');
     const todayStr = dayjs().format('YYYYMMDD');
 
-    const startOfDay = dayjs().startOf('day').toDate();
-    const endOfDay = dayjs().endOf('day').toDate();
+    const startOfDay = nowWib.startOf('day').toDate();
+    const endOfDay = nowWib.endOf('day').toDate();
 
     const lastOrder = await this.orderRepo.findOne({
       where: {
@@ -1371,7 +1378,7 @@ export class OrdersService {
         invoiceNo: Like(`${tenantCode}-${todayStr}-%`),
       },
       order: {
-        invoiceNo: 'DESC', // Ambil yang paling besar
+        invoiceNo: 'DESC',
       },
     });
 
