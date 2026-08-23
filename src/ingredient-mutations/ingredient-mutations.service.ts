@@ -125,7 +125,7 @@ export class IngredientMutationService {
         tenantId,
         ingredientId: ingredient.id,
         type: StockMutationType.LOSS,
-        quantity: -lossQty,
+        quantity: lossQty,
         previousStock,
         currentStock,
         cost_per_unit: ingredient.cost_per_unit,
@@ -177,7 +177,7 @@ export class IngredientMutationService {
         tenantId,
         ingredientId: ingredient.id,
         type: StockMutationType.ADJUSTMENT,
-        quantity: diffQuantity, // BISA POSITIF (+ SELISIH LEBIH) ATAU NEGATIF (- SELISIH KURANG)
+        quantity: diffQuantity,
         previousStock,
         currentStock: actualStock,
         cost_per_unit: ingredient.cost_per_unit,
