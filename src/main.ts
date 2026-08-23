@@ -3,11 +3,11 @@ import { AppModule } from './app.module';
 import { JwtAuthGuard } from './auth/jwt-auth.guard';
 import { Reflector } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
+import { GlobalExceptionFilter } from '../src/common/errors/filters/global-exception.filter'
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const port = process.env.PORT ?? 3007;
-  console.log('main.ts', { port });
 
   // app.enableCors({
   //   origin: ['http://localhost:3000', 'https://admin.julucoffee.com'],
@@ -48,13 +48,15 @@ async function bootstrap() {
     ],
   });
 
+  app.useGlobalFilters(new GlobalExceptionFilter());
+
   const reflector = app.get(Reflector);
   app.useGlobalGuards(new JwtAuthGuard(reflector));
 
   app.useGlobalPipes(
     new ValidationPipe({
-      transform: true, // 👈 WAJIB: Agar @Transform() di DTO berjalan sebelum validator
-      // whitelist: true, // 👈 WAJIB: Membuang properti asing yang tidak ada di DTO
+      transform: true, // dto check
+      // whitelist: true,
     }),
   );
 
