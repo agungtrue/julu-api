@@ -51,7 +51,12 @@ export class OrdersController {
     @Query('all') all: string,
     @CurrentUser() user: any,
   ): Promise<object> {
-    const result = await this.orderService.getSummary(startDate, endDate, all, user);
+    const result = await this.orderService.getSummary(
+      startDate,
+      endDate,
+      all,
+      user,
+    );
     return response(200, 'OK', [result]);
   }
 
