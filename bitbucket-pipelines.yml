@@ -1,10 +1,5 @@
 image: docker:cli
 
-# definitions:
-#   volumes:
-#     varrun: /var/run
-#     julustack: /root/julu-stack
-
 pipelines:
   branches:
     main:
@@ -15,26 +10,11 @@ pipelines:
             - linux
           services:
             - docker
-          # volumes:
-          #   - varrun:/var/run
-          #   - julustack:/root/julu-stack
           script:
-            # - export DOCKER_HOST=unix:///var/run/docker.sock
-
-            # - whoami
-            # - ls -lh /var/run/docker.sock
-            # - docker --version
-
             - echo "$DOCKERHUB_PASSWORD" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
 
             - docker build -t agungtrue/julu_api:latest .
             - docker push agungtrue/julu_api:latest
 
             - apk add --no-cache openssh-client
-            - ssh root@139.59.108.251 "cd /root/julu-stack && docker compose up -d --no-deps julu-api && docker image prune -f"
-
-            # - cd /root/julu-stack
-
-            # - docker compose up -d --no-deps julu-api
-
-            # - docker image prune -f
+            - ssh -o StrictHostKeyChecking=no root@139.59.108.251 "cd /root/julu-stack && docker compose up -d --no-deps julu-api && docker image prune -f"
