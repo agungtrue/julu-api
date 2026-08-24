@@ -16,10 +16,10 @@ pipelines:
             - docker build -t agungtrue/julu_api:latest .
             - docker push agungtrue/julu_api:latest
 
-            - apk add --no-cache openssh-client
+            - apk add --no-cache openssh-client coreutils
             - mkdir -p ~/.ssh
-            # - echo "$SSH_PRIVATE_KEY" | base64 -d > ~/.ssh/id_ed25519
-            - printf "%s" "$SSH_PRIVATE_KEY" | openssl base64 -d -A > ~/.ssh/id_ed25519
+            # - printf "%s" "$SSH_PRIVATE_KEY" | openssl base64 -d -A > ~/.ssh/id_ed25519
+            - echo "$SSH_PRIVATE_KEY" | base64 -d > ~/.ssh/id_ed25519
             - chmod 600 ~/.ssh/id_ed25519
 
             # - ssh -o StrictHostKeyChecking=no root@139.59.108.251 "cd /root/julu-stack && docker compose up -d --no-deps julu-api && docker image prune -f"
