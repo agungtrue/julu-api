@@ -19,7 +19,8 @@ pipelines:
             - apk add --no-cache openssh-client coreutils
             - mkdir -p ~/.ssh
             # - printf "%s" "$SSH_PRIVATE_KEY" | openssl base64 -d -A > ~/.ssh/id_ed25519
-            - echo "$SSH_PRIVATE_KEY" | base64 -d > ~/.ssh/id_ed25519
+            # - echo "$SSH_PRIVATE_KEY" | base64 -d > ~/.ssh/id_ed25519
+            - echo "$SSH_PRIVATE_KEY" | tr -d '\r\n ' | base64 -d > ~/.ssh/id_ed25519
             - chmod 600 ~/.ssh/id_ed25519
 
             # - ssh -o StrictHostKeyChecking=no root@139.59.108.251 "cd /root/julu-stack && docker compose up -d --no-deps julu-api && docker image prune -f"
