@@ -1,8 +1,8 @@
-image: docker:cli
+# image: docker:cli
 
-definitions:
-  volumes:
-    dockersock: /var/run/docker.sock
+# definitions:
+#   volumes:
+#     dockersock: /var/run/docker.sock
 
 pipelines:
   branches:
@@ -12,10 +12,14 @@ pipelines:
           runs-on:
             - self.hosted
             - linux
-          volumes:
-            - dockersock:/var/run/docker.sock
+          # volumes:
+          #   - dockersock:/var/run/docker.sock
           script:
-            - export DOCKER_HOST=unix:///var/run/docker.sock
+            # - export DOCKER_HOST=unix:///var/run/docker.sock
+
+            - whoami
+            - ls -lh /var/run/docker.sock
+            - docker --version
 
             - echo "$DOCKERHUB_PASSWORD" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
 
