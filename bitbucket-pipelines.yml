@@ -1,9 +1,9 @@
-# image: docker:cli
+image: docker:cli
 
-definitions:
-  volumes:
-    varrun: /var/run
-    julustack: /root/julu-stack
+# definitions:
+#   volumes:
+#     varrun: /var/run
+#     julustack: /root/julu-stack
 
 pipelines:
   branches:
@@ -13,11 +13,13 @@ pipelines:
           runs-on:
             - self.hosted
             - linux
-          volumes:
-            - varrun:/var/run
-            - julustack:/root/julu-stack
+          services:
+            - docker
+          # volumes:
+          #   - varrun:/var/run
+          #   - julustack:/root/julu-stack
           script:
-            - export DOCKER_HOST=unix:///var/run/docker.sock
+            # - export DOCKER_HOST=unix:///var/run/docker.sock
 
             - whoami
             - ls -lh /var/run/docker.sock
@@ -29,8 +31,12 @@ pipelines:
 
             - docker push agungtrue/julu_api:latest
 
-            - cd /root/julu-stack
+            - apk add --no-cache openssh-client
 
-            - docker compose up -d --no-deps julu-api
+            - ssh root@139.59.108.251 "cd /root/julu-stack && docker compose up -d --no-deps julu-api && docker image prune -f"
 
-            - docker image prune -f
+            # - cd /root/julu-stack
+
+            # - docker compose up -d --no-deps julu-api
+
+            # - docker image prune -f
