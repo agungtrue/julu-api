@@ -6,7 +6,7 @@ pipelines:
       - step:
           name: Build & Deploy Only API Service
           runs-on:
-            - self-hosted
+            - self.hosted
             - linux
           script:
             - echo "$DOCKERHUB_PASSWORD" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
