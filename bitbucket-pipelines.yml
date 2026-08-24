@@ -4,27 +4,19 @@ pipelines:
   branches:
     main:
       - step:
-          name: Build and Push Docker Image (AMD64)
-          services:
-            - docker
+          name: Build & Deploy Only API Service
+          runs-on:
+            - self-hosted
+            - linux
           script:
-            # 1. Login ke Docker Hub Registry
             - echo "$DOCKERHUB_PASSWORD" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
-            
-            # 2. Build Docker Image (Tetap menggunakan tag image underscore)
-            - docker build -t $DOCKERHUB_USERNAME/julu_api:latest .
-            
-            # 3. Push ke Docker Hub
-            - docker push $DOCKERHUB_USERNAME/julu_api:latest
-            
-      - step:
-          name: Seamless Deployment to VPS
-          script:
-            # 4. Remote Execution ke Jalur /root/julu-stack
-            - ssh -p 22 root@139.59.108.251 "
-                cd /root/julu-stack &&
-                echo '$DOCKERHUB_PASSWORD' | docker login -u '$DOCKERHUB_USERNAME' --password-stdin &&
-                docker compose pull julu-api &&
-                docker compose up -d --no-deps julu-api &&
-                docker image prune -f
-              "
+
+            - docker build -t agungtrue/julu_api:latest .
+
+            - docker push agungtrue/julu_api:latest
+
+            - cd /root/julu-stack
+
+            - docker compose up -d --no-deps julu-api
+
+            - docker image prune -f
