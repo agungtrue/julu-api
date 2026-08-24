@@ -1,8 +1,9 @@
 # image: docker:cli
 
-# definitions:
-#   volumes:
-#     dockersock: /var/run/docker.sock
+definitions:
+  volumes:
+    varrun: /var/run
+    julustack: /root/julu-stack
 
 pipelines:
   branches:
@@ -12,10 +13,11 @@ pipelines:
           runs-on:
             - self.hosted
             - linux
-          # volumes:
-          #   - dockersock:/var/run/docker.sock
+          volumes:
+            - varrun:/var/run
+            - julustack:/root/julu-stack
           script:
-            # - export DOCKER_HOST=unix:///var/run/docker.sock
+            - export DOCKER_HOST=unix:///var/run/docker.sock
 
             - whoami
             - ls -lh /var/run/docker.sock
