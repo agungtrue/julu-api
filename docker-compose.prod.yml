@@ -1,19 +1,19 @@
 services:
   api:
     build: .
-    container_name: julu_api_latest
+    platform: linux/amd64
+    image: agungtrue/julu_api:latest
+    container_name: julu_api
     restart: always
-    ports:
-      - "3006:3006"
-    # env_file:
-    #   - .env.prod
+    volumes:
+      - ./ca-certificate.crt:/usr/src/app/ca-certificate.crt
     environment:
-    - NODE_ENV=production
-    - PORT=3006
-    - DB_HOST=dbaas-db-1877731-do-user-7846780-0.h.db.ondigitalocean.com
-    - DB_PORT=25060
-    - DB_USER=agungJulu
-    - DB_PASS=AVNS_djS-d9-H74GchFdWva3
-    - DB_NAME=julu_db
-    - JWT_SECRET=&17_JVlv@=
-    # - DATABASE_URL=postgres://syuhadadwiagung:benarbiru@db:5432/julu_pos_kasir
+      - NODE_ENV=production
+      - PORT=3006
+      - DB_HOST=dbaas-db-1877731-do-user-7846780-0.h.db.ondigitalocean.com
+      - DB_PORT=25060
+      - DB_USER=julu_pos_app
+      - DB_PASS=Benarbiru!7
+      - DB_NAME=julu_pos
+      - JWT_SECRET=&17_JVlv@=
+    expose: ["3006"]
