@@ -1,0 +1,28 @@
+image: docker:cli
+
+pipelines:
+  branches:
+    main:
+      - step:
+          name: Build & Deploy Only API Service
+          runs-on:
+            - self.hosted
+            - linux
+          services:
+            - docker
+          script:
+            - echo "$DOCKERHUB_PASSWORD" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+
+            - docker build -t agungtrue/julu_api:latest .
+            - docker push agungtrue/julu_api:latest
+
+            - apk add --no-cache openssh-client coreutils
+            - mkdir -p ~/.ssh
+            # - printf "%s" "$SSH_PRIVATE_KEY" | openssl base64 -d -A > ~/.ssh/id_ed25519
+            # - echo "$SSH_PRIVATE_KEY" | base64 -d > ~/.ssh/id_ed25519
+            - echo "$SSH_PRIVATE_KEY" | tr -d '\r\n ' | base64 -d > ~/.ssh/id_ed25519
+            - chmod 600 ~/.ssh/id_ed25519
+
+            # - ssh -o StrictHostKeyChecking=no root@139.59.108.251 "cd /root/julu-stack && docker compose up -d --no-deps julu-api && docker image prune -f"
+            # - ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no root@139.59.108.251 "cd /root/julu-stack && docker compose up -d --no-deps julu-api && docker image prune -f"
+            - ssh -i ~/.ssh/id_ed25519 -o IdentitiesOnly=yes -o StrictHostKeyChecking=no root@139.59.108.251 "cd /root/julu-stack && docker compose up -d --no-deps julu-api && docker image prune -f"

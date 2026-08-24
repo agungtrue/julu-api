@@ -4,7 +4,7 @@ pipelines:
   branches:
     main:
       - step:
-          name: Build and Push Docker Image (AMD64)
+          name: Build and Push Docker Image
           services:
             - docker
           script:
