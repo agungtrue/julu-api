@@ -1,5 +1,9 @@
 image: docker:cli
 
+definitions:
+  volumes:
+    dockersock: /var/run/docker.sock
+
 pipelines:
   branches:
     main:
@@ -8,9 +12,9 @@ pipelines:
           runs-on:
             - self.hosted
             - linux
+          volumes:
+            - dockersock:/var/run/docker.sock
           script:
-            - export DOCKER_HOST=unix:///var/run/docker.sock
-            
             - echo "$DOCKERHUB_PASSWORD" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
 
             - docker build -t agungtrue/julu_api:latest .
