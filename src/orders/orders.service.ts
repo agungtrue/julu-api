@@ -1396,7 +1396,13 @@ export class OrdersService {
 
     const sequence = String(nextSequence).padStart(4, '0');
     const invNo = `${tenantCode}-${todayStr}-${sequence}`;
-    console.log({ invNo, lastInv: lastOrder.invoiceNo });
+    console.log({
+      invNo,
+      lastInv: lastOrder?.invoiceNo || '',
+      todayStr,
+      startOfDay,
+      endOfDay,
+    });
     return invNo;
   }
 
