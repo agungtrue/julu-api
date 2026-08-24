@@ -3,13 +3,14 @@ import {
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
-import { DataSource, EntityManager } from 'typeorm';
+import { DataSource, EntityManager, In } from 'typeorm';
 import { Ingredient } from '../ingredients/entities/ingredient.entity';
 import { IngredientMutation } from './entities/ingredient-mutation.entity';
 import { Order } from '../orders/orders.entity';
 import { StockMutationType } from './stock-mutation-type.enum';
 import { RestockIngredientDto } from './dto/restock-ingredient.dto';
 import { RecordLossDto } from './dto/record-loss.dto';
+import { ResetStockDto } from './dto/reset-stock.dto';
 import { StockOpnameDto } from './dto/stock-opname.dto';
 import { IngredientsService } from '../ingredients/ingredients.service';
 import dayjs, { Dayjs } from 'dayjs';
@@ -379,5 +380,51 @@ export class IngredientMutationService {
       },
       totalActivityCount,
     };
+  }
+
+  async resetStockBatch(dto: ResetStockDto, tenantId: string, userId: string) {
+    const { ids } = dto;
+
+    // Menggunakan Transactional Entity Manager TypeORM
+    return await this.dataSource.transaction(async (manager) => {
+      // 1. Ambil data stok saat ini untuk keperluan Audit Log (Stock Mutation)
+      const currentMaterials = await manager.find(Ingredient, {
+        where: { id: In(ids) },
+        select: ['id', 'name', 'stock'],
+      });
+
+      if (currentMaterials.length === 0) {
+        throw new NotFoundException('Bahan baku tidak ditemukan');
+      }
+
+      const mutationLogs = currentMaterials.map((ingredient) =>
+        manager.create(IngredientMutation, {
+          tenantId,
+          ingredientId: ingredient.id,
+          type: StockMutationType.ADJUSTMENT,
+          quantity: 0,
+          previousStock: ingredient.stock,
+          currentStock: 0,
+          cost_per_unit: 0,
+          totalCost: 0,
+          notes: `Otomatis, Reset Stok bahan baku`,
+          createdById: userId,
+        }),
+      );
+
+      await manager.save(IngredientMutation, mutationLogs);
+
+      const updateResult = await manager.update(
+        Ingredient,
+        { id: In(ids) },
+        { stock: 0 },
+      );
+
+      return {
+        success: true,
+        message: `${updateResult.affected || 0} bahan baku berhasil di-reset ke 0`,
+        resetCount: updateResult.affected || 0,
+      };
+    });
   }
 }
