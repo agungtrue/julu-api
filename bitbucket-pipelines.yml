@@ -9,6 +9,8 @@ pipelines:
             - self.hosted
             - linux
           script:
+            - export DOCKER_HOST=unix:///var/run/docker.sock
+            
             - echo "$DOCKERHUB_PASSWORD" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
 
             - docker build -t agungtrue/julu_api:latest .
