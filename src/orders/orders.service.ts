@@ -1395,7 +1395,9 @@ export class OrdersService {
     }
 
     const sequence = String(nextSequence).padStart(4, '0');
-    return `${tenantCode}-${todayStr}-${sequence}`;
+    const invNo = `${tenantCode}-${todayStr}-${sequence}`;
+    console.log({ invNo, lastInv: lastOrder.invoiceNo });
+    return invNo;
   }
 
   async rollbackOrderStock(orderId: string, tenantId: string, userId: string) {
