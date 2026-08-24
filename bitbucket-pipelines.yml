@@ -1,28 +1,26 @@
-image: docker:cli
+image: node:22
 
 pipelines:
   branches:
     main:
       - step:
-          name: Build & Deploy Only API Service
-          runs-on:
-            - self.hosted
-            - linux
+          name: Build and Push Docker Image (AMD64)
           services:
             - docker
           script:
             - echo "$DOCKERHUB_PASSWORD" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
-
-            - docker build -t agungtrue/julu_api:latest .
-            - docker push agungtrue/julu_api:latest
-
-            - apk add --no-cache openssh-client coreutils
-            - mkdir -p ~/.ssh
-            # - printf "%s" "$SSH_PRIVATE_KEY" | openssl base64 -d -A > ~/.ssh/id_ed25519
-            # - echo "$SSH_PRIVATE_KEY" | base64 -d > ~/.ssh/id_ed25519
-            - echo "$SSH_PRIVATE_KEY" | tr -d '\r\n ' | base64 -d > ~/.ssh/id_ed25519
-            - chmod 600 ~/.ssh/id_ed25519
-
-            # - ssh -o StrictHostKeyChecking=no root@139.59.108.251 "cd /root/julu-stack && docker compose up -d --no-deps julu-api && docker image prune -f"
-            # - ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no root@139.59.108.251 "cd /root/julu-stack && docker compose up -d --no-deps julu-api && docker image prune -f"
-            - ssh -i ~/.ssh/id_ed25519 -o IdentitiesOnly=yes -o StrictHostKeyChecking=no root@139.59.108.251 "cd /root/julu-stack && docker compose up -d --no-deps julu-api && docker image prune -f"
+            
+            - docker build -t $DOCKERHUB_USERNAME/julu_api:latest .
+            
+            - docker push $DOCKERHUB_USERNAME/julu_api:latest
+            
+      - step:
+          name: Deployment to VPS
+          script:
+            - ssh -p 22 root@139.59.108.251 "
+                cd /root/julu-stack &&
+                echo '$DOCKERHUB_PASSWORD' | docker login -u '$DOCKERHUB_USERNAME' --password-stdin &&
+                docker compose pull julu-api &&
+                docker compose up -d --no-deps julu-api &&
+                docker image prune -f
+              "
