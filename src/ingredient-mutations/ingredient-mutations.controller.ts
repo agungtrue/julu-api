@@ -12,6 +12,7 @@ import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { RestockIngredientDto } from './dto/restock-ingredient.dto';
 import { RecordLossDto } from './dto/record-loss.dto';
 import { StockOpnameDto } from './dto/stock-opname.dto';
+import { ResetStockDto } from './dto/reset-stock.dto';
 import { StockMutationType } from './stock-mutation-type.enum';
 import { response } from '../utils/response';
 
@@ -43,6 +44,13 @@ export class IngredientMutationController {
     const tenantId = user.tenantId;
     const userId = user.id;
     return await this.mutationService.adjustStockOpname(tenantId, userId, dto);
+  }
+
+  @Post('reset-stock')
+  async resetStock(@Body() dto: ResetStockDto, @CurrentUser() user: any) {
+    const tenantId = user?.tenantId;
+    const userId = user?.id;
+    return await this.mutationService.resetStockBatch(dto, tenantId, userId);
   }
 
   @Get('summary')
