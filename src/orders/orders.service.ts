@@ -1366,7 +1366,7 @@ export class OrdersService {
     dayjs.extend(timezone);
 
     const nowWib = dayjs().tz('Asia/Jakarta');
-    const todayStr = dayjs().format('YYYYMMDD');
+    const todayStr = nowWib.format('YYYYMMDD');
 
     const startOfDay = nowWib.startOf('day').toDate();
     const endOfDay = nowWib.endOf('day').toDate();
@@ -1378,7 +1378,7 @@ export class OrdersService {
         invoiceNo: Like(`${tenantCode}-${todayStr}-%`),
       },
       order: {
-        invoiceNo: 'DESC',
+        createdAt: 'DESC',
       },
     });
 
