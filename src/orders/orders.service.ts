@@ -1368,23 +1368,19 @@ export class OrdersService {
     const nowWib = dayjs().tz('Asia/Jakarta');
     const todayStr = nowWib.format('YYYYMMDD');
 
-    const startOfDay = nowWib.startOf('day').toDate();
-    const endOfDay = nowWib.endOf('day').toDate();
-
     const lastOrder = await this.orderRepo.findOne({
       where: {
         tenantId,
-        createdAt: Between(startOfDay, endOfDay),
         invoiceNo: Like(`${tenantCode}-${todayStr}-%`),
       },
       order: {
-        createdAt: 'DESC',
+        invoiceNo: 'DESC',
       },
     });
 
     let nextSequence = 1;
 
-    if (lastOrder && lastOrder.invoiceNo) {
+    if (lastOrder?.invoiceNo) {
       const parts = lastOrder.invoiceNo.split('-');
       const lastSeqStr = parts[parts.length - 1];
       const lastSeq = parseInt(lastSeqStr, 10);
@@ -1400,8 +1396,6 @@ export class OrdersService {
       invNo,
       lastInv: lastOrder?.invoiceNo || '',
       todayStr,
-      startOfDay,
-      endOfDay,
     });
     return invNo;
   }
