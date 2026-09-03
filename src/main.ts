@@ -1,4 +1,5 @@
 import { NestFactory } from '@nestjs/core';
+import { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule } from './app.module';
 import { JwtAuthGuard } from './auth/jwt-auth.guard';
 import { Reflector } from '@nestjs/core';
@@ -6,15 +7,8 @@ import { ValidationPipe } from '@nestjs/common';
 import { GlobalExceptionFilter } from '../src/common/errors/filters/global-exception.filter'
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
   const port = process.env.PORT ?? 3007;
-
-  // app.enableCors({
-  //   origin: ['http://localhost:3000', 'https://admin.julucoffee.com'],
-  //   credentials: true,
-  //   methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-  //   allowedHeaders: 'Content-Type, Accept, Authorization',
-  // });
 
   app.enableCors({
     origin: (origin, callback) => {
@@ -59,6 +53,8 @@ async function bootstrap() {
       // whitelist: true,
     }),
   );
+
+  app.set('trust proxy', true);
 
   await app.listen(port);
 }
