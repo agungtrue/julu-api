@@ -224,4 +224,106 @@ export class DashboardService {
       );
     }
   }
+  async getTrends(dto: GetSummaryDashboardDto, user: any) {
+    const tenantId = user?.tenantId;
+
+    const cleanStart = dto.startDate.split(' ')[0];
+    const cleanEnd = dto.endDate.split(' ')[0];
+
+    const startDate = `${cleanStart} 00:00:00`;
+    const endDate = `${cleanEnd} 23:59:59`;
+
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    const rawTrends = await this.dataSource.query(
+      `
+    WITH tenant_info AS (
+      -- Step 1: Ambil daily_opex langsung dari tabel tenants
+      SELECT 
+        id AS "tenantId",
+        COALESCE(daily_opex, 0)::numeric AS "dailyOpex"
+      FROM tenants
+      WHERE id = $1
+    ),
+    order_cogs AS (
+      -- Step 2: Agregasi COGS per Order
+      SELECT 
+        oi.order_id,
+        SUM(oi.qty * COALESCE(oi.cogs_at_purchase, p.cogs, 0)) AS total_cogs
+      FROM order_items oi
+      JOIN orders o ON o.id = oi.order_id
+      LEFT JOIN products p ON p.id = oi.product_id
+      WHERE oi."tenantId" = $1
+        AND o.status = 'confirmed'
+        AND (o.created_at AT TIME ZONE 'Asia/Jakarta') >= $2::timestamp
+        AND (o.created_at AT TIME ZONE 'Asia/Jakarta') <= $3::timestamp
+      GROUP BY oi.order_id
+    )
+    -- Step 3: Agregasi Harian Omzet, COGS, Transactions & Daily OPEX
+    SELECT 
+      TO_CHAR(o.created_at AT TIME ZONE 'Asia/Jakarta', 'YYYY-MM-DD') AS "date",
+      COUNT(o.id)::int AS "transactionsCount",
+      COALESCE(SUM(o.total), 0)::numeric AS "revenues",
+      COALESCE(SUM(c.total_cogs), 0)::numeric AS "cogs",
+      t."dailyOpex"
+    FROM orders o
+    CROSS JOIN tenant_info t
+    LEFT JOIN order_cogs c ON c.order_id = o.id
+    WHERE o."tenantId" = $1
+      AND o.status = 'confirmed'
+      AND o.created_at >= $2::timestamp
+      AND o.created_at <= $3::timestamp
+    GROUP BY TO_CHAR(o.created_at AT TIME ZONE 'Asia/Jakarta', 'YYYY-MM-DD'), t."dailyOpex"
+    ORDER BY "date" ASC;
+    `,
+      [tenantId, startDate, endDate],
+    );
+
+    // console.log({ rawTrends });
+    const dailyOpex =
+      rawTrends?.length > 0 ? Number(rawTrends?.[0].dailyOpex) : 0;
+
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+    return this.fillMissingDates(rawTrends, startDate, endDate, dailyOpex);
+  }
+
+  private fillMissingDates(
+    rawTrends: any[],
+    startDate: string,
+    endDate: string,
+    dailyOpex: number,
+  ) {
+    const trendMap = new Map(rawTrends.map((item) => [item.date, item]));
+    const result = [];
+
+    const [sY, sM, sD] = startDate.split(' ')[0].split('-').map(Number);
+    const [eY, eM, eD] = endDate.split(' ')[0].split('-').map(Number);
+
+    const current = new Date(Date.UTC(sY, sM - 1, sD));
+    const stop = new Date(Date.UTC(eY, eM - 1, eD));
+
+    // console.log({ current, stop });
+
+    while (current <= stop) {
+      const dateStr = current.toISOString().split('T')[0];
+
+      const existing = trendMap.get(dateStr);
+
+      const revenues = existing ? Number(existing?.revenues) : 0;
+      const cogs = existing ? Number(existing?.cogs) : 0;
+      const netIncomes = revenues - cogs - dailyOpex;
+
+      result.push({
+        date: dateStr,
+        revenues,
+        cogs,
+        totalOpex: dailyOpex,
+        netIncomes,
+        transactionsCount: existing ? Number(existing?.transactionsCount) : 0,
+      });
+
+      current.setUTCDate(current.getUTCDate() + 1);
+    }
+
+    return result;
+  }
 }
