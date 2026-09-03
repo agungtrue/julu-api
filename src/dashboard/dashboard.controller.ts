@@ -20,4 +20,14 @@ export class DashboardController {
     const result = await this.dashboardService.getSummary(dto, user);
     return response(200, 'OK', [result]);
   }
+
+  @Throttle({ default: { limit: 50, ttl: 60000 } })
+  @Get('trends')
+  async getTrends(
+    @Query() dto: GetSummaryDashboardDto,
+    @CurrentUser() user: any,
+  ) {
+    const result = await this.dashboardService.getTrends(dto, user);
+    return response(200, 'OK', [result]);
+  }
 }
