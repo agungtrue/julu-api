@@ -1,4 +1,5 @@
 import { Controller, Get, Query, UseGuards } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { DashboardService } from './dashboard.service';
 import { GetSummaryDashboardDto } from './dto/get-summary-dashboard.dto';
 import { response } from '../utils/response';
@@ -10,6 +11,7 @@ import { RequireSubscription } from '../common/decorators/require-subscription.d
 export class DashboardController {
   constructor(private readonly dashboardService: DashboardService) {}
 
+  @Throttle({ default: { limit: 50, ttl: 60000 } })
   @Get('summary')
   async getSummary(
     @Query() dto: GetSummaryDashboardDto,
