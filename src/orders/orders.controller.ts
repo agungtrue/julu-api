@@ -12,6 +12,7 @@ import {
   HttpCode,
   Param,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { OrdersService } from './orders.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { response } from '../utils/response';
@@ -60,6 +61,7 @@ export class OrdersController {
     return response(200, 'OK', [result]);
   }
 
+  @Throttle({ default: { limit: 20, ttl: 60000 } })
   @Post('/init')
   async init(
     @Body() body: any,
@@ -106,6 +108,7 @@ export class OrdersController {
 
     return data;
   }
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   @Get('/sales-report')
   async exportSales(
     @CurrentUser() user: any,
