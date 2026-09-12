@@ -13,8 +13,8 @@ export const dashboardSummaryQuery = `
           LEFT JOIN products p ON p.id = oi.product_id
           WHERE oi."tenantId" = $1
             AND o.status = 'confirmed'
-            AND o.created_at >= $2
-            AND o.created_at <= $3
+            AND o.created_at >= ($2::timestamp - INTERVAL '7 hours')
+            AND o.created_at <= ($3::timestamp - INTERVAL '7 hours')
           GROUP BY oi.order_id
         ),
         order_summary AS (
@@ -40,8 +40,8 @@ export const dashboardSummaryQuery = `
           FROM orders o
           LEFT JOIN order_cogs c ON c.order_id = o.id
           WHERE o."tenantId" = $1
-            AND o.created_at >= $2
-            AND o.created_at <= $3
+            AND o.created_at >= ($2::timestamp - INTERVAL '7 hours')
+            AND o.created_at <= ($3::timestamp - INTERVAL '7 hours')
         ),
         opex_summary AS (
           -- Step 3: Total Beban Operasional Kumulatif
@@ -58,8 +58,8 @@ export const dashboardSummaryQuery = `
           FROM ingredient_mutations im
           WHERE im."tenantId" = $1
             AND im.type = 'LOSS'
-            AND im.created_at >= $2
-            AND im.created_at <= $3
+            AND im.created_at >= ($2::timestamp - INTERVAL '7 hours')
+            AND im.created_at <= ($3::timestamp - INTERVAL '7 hours')
         ),
         best_sellers_raw AS (
           -- Step 5: Cari 10 Produk Terlaris (Fixed: WHERE)
@@ -71,8 +71,8 @@ export const dashboardSummaryQuery = `
           JOIN products p ON p.id = oi.product_id
           WHERE o."tenantId" = $1
             AND o.status = 'confirmed'
-            AND o.created_at >= $2
-            AND o.created_at <= $3
+            AND o.created_at >= ($2::timestamp - INTERVAL '7 hours')
+            AND o.created_at <= ($3::timestamp - INTERVAL '7 hours')
           GROUP BY p.name
           ORDER BY count DESC
           LIMIT 10
@@ -110,8 +110,8 @@ export const dashboardSummaryQuery = `
           JOIN products p ON p.id = oi.product_id
           WHERE o."tenantId" = $1
             AND o.status = 'confirmed'
-            AND o.created_at >= $2
-            AND o.created_at <= $3
+            AND o.created_at >= ($2::timestamp - INTERVAL '7 hours')
+            AND o.created_at <= ($3::timestamp - INTERVAL '7 hours')
           GROUP BY u.id, u.name
         ),
         user_performances_json AS (
@@ -162,8 +162,8 @@ export const dashboardSummaryQuery = `
           JOIN products p ON p.id = oi.product_id
           WHERE o."tenantId" = $1
             AND o.status = 'confirmed'
-            AND o.created_at >= $2
-            AND o.created_at <= $3
+            AND o.created_at >= ($2::timestamp - INTERVAL '7 hours')
+            AND o.created_at <= ($3::timestamp - INTERVAL '7 hours')
           GROUP BY p.type, p.size
         ),
         category_sales_grouped AS (
