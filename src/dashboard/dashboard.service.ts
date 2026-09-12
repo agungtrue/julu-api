@@ -254,13 +254,13 @@ export class DashboardService {
       LEFT JOIN products p ON p.id = oi.product_id
       WHERE oi."tenantId" = $1
         AND o.status = 'confirmed'
-        AND (o.created_at + INTERVAL '7 hours') >= $2::timestamp
-        AND (o.created_at + INTERVAL '7 hours') <= $3::timestamp
+        AND o.created_at >= ($2::timestamp - INTERVAL '7 hours')
+        AND o.created_at <= ($3::timestamp - INTERVAL '7 hours')
       GROUP BY oi.order_id
     )
     -- Step 3: Agregasi Harian Omzet, COGS, Transactions & Daily OPEX
     SELECT 
-      TO_CHAR((o.created_at AT TIME ZONE 'UTC') AT TIME ZONE 'Asia/Jakarta', 'YYYY-MM-DD') AS "date",
+      TO_CHAR(o.created_at + INTERVAL '7 hours', 'YYYY-MM-DD') AS "date",
       COUNT(o.id)::int AS "transactionsCount",
       COALESCE(SUM(o.total), 0)::numeric AS "revenues",
       COALESCE(SUM(c.total_cogs), 0)::numeric AS "cogs",
@@ -270,9 +270,9 @@ export class DashboardService {
     LEFT JOIN order_cogs c ON c.order_id = o.id
     WHERE o."tenantId" = $1
       AND o.status = 'confirmed'
-      AND (o.created_at + INTERVAL '7 hours') >= $2::timestamp
-      AND (o.created_at + INTERVAL '7 hours') <= $3::timestamp
-    GROUP BY TO_CHAR((o.created_at AT TIME ZONE 'UTC') AT TIME ZONE 'Asia/Jakarta', 'YYYY-MM-DD'), t."dailyOpex"
+      AND o.created_at >= ($2::timestamp - INTERVAL '7 hours')
+      AND o.created_at <= ($3::timestamp - INTERVAL '7 hours')
+    GROUP BY TO_CHAR(o.created_at + INTERVAL '7 hours', 'YYYY-MM-DD'), t."dailyOpex"
     ORDER BY "date" ASC;
     `,
       [tenantId, startDate, endDate],
