@@ -37,6 +37,8 @@ export class DashboardService {
 
       const row = rawResult[0] || {};
 
+      // console.log({ row });
+
       const round2 = (num: number) => parseFloat(Number(num || 0).toFixed(2));
 
       // Core Financial Data
@@ -44,8 +46,14 @@ export class DashboardService {
       const totalCogs = parseFloat(row.totalCogs || 0);
       const grossProfit = parseFloat(row.grossProfit || 0);
 
-      const baseDailyOpex = parseFloat(row.totalOpex || 0);
-      const cumulativeTotalOpex = baseDailyOpex * daysCount;
+      const baseDailyOpex = !parseFloat(row.totalOpex || 0)
+        ? 0
+        : parseFloat(row.dailyOpex || 0);
+      const cumulativeTotalOpex = row.daysOffCount
+        ? row.totalOpex
+        : baseDailyOpex * daysCount;
+
+      // console.log({ baseDailyOpex, daysCount, cumulativeTotalOpex });
 
       const totalOpex = parseFloat(row.totalOpex || 0);
       const totalLossNominal = parseFloat(row.totalLossNominal || 0);
@@ -212,6 +220,10 @@ export class DashboardService {
           startDate: startDateStr,
           endDate: endDateStr,
           daysCount,
+        },
+        operatingDays: {
+          open: row.operatingDaysCount || 0,
+          off: row.daysOffCount || 0,
         },
         debug: {
           todayStr,

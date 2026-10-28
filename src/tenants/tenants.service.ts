@@ -6,7 +6,9 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Tenant } from './tenants.entity';
+import { StoreSpecialDays } from './entities/store-special-days.entity';
 import { CreateTenantDto, UpdateTenantDto } from './dto/tenant.dto';
+import { UpdateTenantSettingsDto } from './dto/update-tenant-settings.dto';
 import { response } from '../utils/response';
 import {
   SubscriptionPlan,
@@ -16,12 +18,15 @@ import {
   Subscription,
   SubscriptionStatus,
 } from '../subscriptions/entities/subscription.entity';
+import { ToggleStoreStatusDto } from './dto/toggle-store-status.dto';
 
 @Injectable()
 export class TenantsService {
   constructor(
     @InjectRepository(Tenant)
     private readonly tenantRepo: Repository<Tenant>,
+    @InjectRepository(StoreSpecialDays)
+    private readonly storeSpecialDays: Repository<StoreSpecialDays>,
   ) {}
   async create(dto: CreateTenantDto): Promise<Tenant> {
     return await this.tenantRepo.manager.transaction(async (manager) => {
@@ -94,5 +99,109 @@ export class TenantsService {
       .addOrderBy('subscription.createdAt', 'DESC')
       .getMany();
     return response(200, 'OK', data);
+  }
+
+  async getTodayStatus(tenantId: string, targetDateStr?: string) {
+    const dateStr =
+      targetDateStr ||
+      new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Jakarta' });
+
+    const specialDay = await this.storeSpecialDays.findOne({
+      where: { tenantId, date: dateStr },
+    });
+
+    // console.log({ dateStr });
+    // console.log({ specialDay });
+
+    if (specialDay) {
+      return {
+        date: dateStr,
+        isOpen: specialDay.isOpen,
+        isOverride: true,
+        reason: specialDay.reason,
+      };
+    }
+
+    const tenant = await this.tenantRepo.findOne({
+      where: { id: tenantId },
+      select: ['id', 'operating_days'],
+    });
+
+    const operatingDays = tenant?.operating_days || [1, 2, 3, 4, 5, 6, 0];
+
+    const targetDow = new Date(dateStr).getDay();
+    const isOpenBySchedule = operatingDays.includes(targetDow);
+
+    return {
+      date: dateStr,
+      isOpen: isOpenBySchedule,
+      isOverride: false,
+      reason: isOpenBySchedule
+        ? 'Jadwal operasional rutin'
+        : 'Hari libur rutin',
+    };
+  }
+
+  async toggleTodayStatus(
+    tenantId: string,
+    userId: string,
+    dto: ToggleStoreStatusDto,
+  ) {
+    const todayStr = new Date().toLocaleDateString('sv-SE', {
+      timeZone: 'Asia/Jakarta',
+    });
+
+    await this.storeSpecialDays.upsert(
+      {
+        tenantId,
+        date: todayStr,
+        isOpen: dto.isOpen,
+        reason: dto.reason || 'Manual override via Dashboard',
+        updatedBy: { id: userId },
+      },
+      ['tenantId', 'date'],
+    );
+
+    return {
+      message: `Status toko hari ini (${todayStr}) berhasil diubah menjadi ${dto.isOpen ? 'BUKA' : 'TUTUP'}.`,
+      isOpen: dto.isOpen,
+    };
+  }
+
+  async getSettings(tenantId: string) {
+    const tenant = await this.tenantRepo.findOne({
+      where: { id: tenantId },
+      select: ['id', 'name', 'daily_opex', 'operating_days', 'receiptFooter'],
+    });
+
+    if (!tenant) {
+      throw new NotFoundException('Tenant tidak ditemukan');
+    }
+
+    return tenant;
+  }
+
+  async updateSettings(tenantId: string, dto: UpdateTenantSettingsDto) {
+    const tenant = await this.tenantRepo.findOne({
+      where: { id: tenantId },
+    });
+
+    if (!tenant) {
+      throw new NotFoundException('Tenant tidak ditemukan');
+    }
+
+    if (dto?.operating_days !== undefined) {
+      tenant.operating_days = dto.operating_days.sort((a, b) => a - b);
+    }
+
+    await this.tenantRepo.save(tenant);
+
+    return {
+      message: 'Pengaturan hari operasional berhasil diperbarui',
+      data: {
+        daily_opex: tenant.daily_opex,
+        operating_days: tenant.operating_days,
+      },
+    };
   }
 }

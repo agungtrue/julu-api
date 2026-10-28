@@ -44,6 +44,13 @@ export class Tenant {
   })
   receiptFooter: string;
 
+  @Column({
+    type: 'int',
+    array: true,
+    default: [1, 2, 3, 4, 5, 6, 0],
+  })
+  operating_days: number[];
+
   @CreateDateColumn({ type: 'timestamp' })
   created_at: Date;
 

@@ -4,6 +4,7 @@ import {
   Put,
   Get,
   Body,
+  Patch,
   Param,
   ParseUUIDPipe,
   UseGuards,
@@ -13,6 +14,8 @@ import { TenantsService } from './tenants.service';
 import { CreateTenantDto, UpdateTenantDto } from './dto/tenant.dto';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { RequireSubscription } from '../common/decorators/require-subscription.decorator';
+import { UpdateTenantSettingsDto } from './dto/update-tenant-settings.dto';
+import { ToggleStoreStatusDto } from './dto/toggle-store-status.dto';
 
 @Controller('tenants')
 @RequireSubscription()
@@ -35,6 +38,38 @@ export class TenantsController {
     return this.tenantsService.create(dto);
   }
 
+  @Get('settings')
+  async getSettings(@CurrentUser() user: any) {
+    const tenantId = user.tenantId; // Diambil dari JWT Token
+    return this.tenantsService.getSettings(tenantId);
+  }
+
+  // Update Pengaturan Tenant Login
+  @Patch('settings')
+  async updateSettings(
+    @CurrentUser() user: any,
+    @Body() dto: UpdateTenantSettingsDto,
+  ) {
+    const tenantId = user.tenantId; // Diambil dari JWT Token
+    return this.tenantsService.updateSettings(tenantId, dto);
+  }
+
+  @Get('special-days')
+  async getTodayStatus(@CurrentUser() user: any) {
+    const tenantId = user.tenantId;
+    return this.tenantsService.getTodayStatus(tenantId);
+  }
+
+  @Patch('special-days')
+  async toggleTodayStatus(
+    @CurrentUser() user: any,
+    @Body() dto: ToggleStoreStatusDto,
+  ) {
+    const tenantId = user.tenantId;
+    const userId = user?.id || null;
+    return this.tenantsService.toggleTodayStatus(tenantId, userId, dto);
+  }
+
   @Put(':id')
   async updateTenant(
     @Param('id', ParseUUIDPipe) id: string,
@@ -44,7 +79,6 @@ export class TenantsController {
   }
 
   /**
-   * 💳 SYSTEM BILLING / SUPER ADMIN (Perpanjang Lisensi)
    * POST /tenants/:id/billing
    */
   //   @Post(':id/billing')
