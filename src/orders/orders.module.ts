@@ -9,6 +9,7 @@ import { Promotion } from 'src/promotions/promotions.entity';
 import { Tenant } from 'src/tenants/tenants.entity';
 import { Ingredient } from 'src/ingredients/entities/ingredient.entity';
 import { IngredientMutationsModule } from 'src/ingredient-mutations/ingredient-mutations.module';
+import { DashboardModule } from 'src/dashboard/dashboard.module';
 @Module({
   imports: [
     TypeOrmModule.forFeature([
@@ -20,6 +21,7 @@ import { IngredientMutationsModule } from 'src/ingredient-mutations/ingredient-m
       Ingredient,
     ]),
     IngredientMutationsModule,
+    DashboardModule,
   ],
   providers: [OrdersService],
   controllers: [OrdersController],

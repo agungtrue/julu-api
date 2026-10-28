@@ -1,5 +1,40 @@
 export const dashboardSummaryQuery = `
-        WITH order_cogs AS (
+        WITH tenant_config AS (
+          -- Step 0A: Ambil daily_opex dan operating_days langsung dari tabel tenants
+          SELECT 
+            COALESCE(t.daily_opex, 0)::numeric AS daily_opex,
+            COALESCE(t.operating_days, ARRAY[1,2,3,4,5,6,0]) AS operating_days
+          FROM tenants t
+          WHERE t.id = $1
+          LIMIT 1
+        ),
+        date_range_days AS (
+          -- Step 0B: Generate deret tanggal dengan Hybrid Check (Override > Baseline Schedule)
+          SELECT 
+            d.day::date AS day,
+            COALESCE(
+              ssd."isOpen",
+              (EXTRACT(DOW FROM d.day)::int = ANY(tc.operating_days))
+            ) AS is_operating_day
+          FROM generate_series(
+            DATE($2::timestamp),
+            DATE($3::timestamp),
+            '1 day'::interval
+          ) AS d(day)
+          CROSS JOIN tenant_config tc
+          LEFT JOIN store_special_days ssd 
+            ON ssd."tenantId" = $1 
+           AND ssd.date = d.day::date
+        ),
+        days_summary AS (
+          -- Step 0C: Hitung total hari dalam range, hari buka, dan hari libur
+          SELECT 
+            COUNT(*)::int AS "totalDaysInRange",
+            COUNT(*) FILTER (WHERE is_operating_day)::int AS "operatingDaysCount",
+            COUNT(*) FILTER (WHERE NOT is_operating_day)::int AS "daysOffCount"
+          FROM date_range_days
+        ),
+        order_cogs AS (
           -- Step 1: Agregasi per Order (COGS + Jumlah Snack/Item)
           SELECT 
             oi.order_id,
@@ -44,11 +79,11 @@ export const dashboardSummaryQuery = `
             AND o.created_at <= ($3::timestamp - INTERVAL '7 hours')
         ),
         opex_summary AS (
-          -- Step 3: Total Beban Operasional Kumulatif
           SELECT 
-            COALESCE(SUM(op.amount), 0)::numeric AS "totalOpex"
-          FROM opex op
-          WHERE op."tenantId" = $1
+            tc.daily_opex AS "dailyOpex",
+            (tc.daily_opex * ds."operatingDaysCount")::numeric AS "totalOpex"
+          FROM tenant_config tc
+          CROSS JOIN days_summary ds
         ),
         loss_summary AS (
           -- Step 4: Loss Mutation / Stock Loss
@@ -75,7 +110,7 @@ export const dashboardSummaryQuery = `
             AND o.created_at <= ($3::timestamp - INTERVAL '7 hours')
           GROUP BY p.name
           ORDER BY count DESC
-          LIMIT 10
+          LIMIT 20
         ),
         best_sellers_json AS (
           -- Step 6: Convert Best Sellers ke JSON Array
@@ -198,6 +233,10 @@ export const dashboardSummaryQuery = `
         -- FINAL SELECT: Menggabungkan Seluruh CTE
         SELECT 
           os.*,
+          ds."totalDaysInRange",
+          ds."operatingDaysCount",
+          ds."daysOffCount",
+          ex."dailyOpex",
           ex."totalOpex",
           ABS(ls."totalLossNominal") AS "totalLossNominal",
           ls."totalLossCount",
@@ -212,6 +251,7 @@ export const dashboardSummaryQuery = `
           sa."stockAlerts",
           cs."productCategories"
         FROM order_summary os
+        CROSS JOIN days_summary ds
         CROSS JOIN opex_summary ex
         CROSS JOIN loss_summary ls
         CROSS JOIN best_sellers_json bs

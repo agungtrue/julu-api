@@ -20,11 +20,15 @@ import { Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { RequireSubscription } from '../common/decorators/require-subscription.decorator';
+import { DashboardService } from 'src/dashboard/dashboard.service';
 
 @Controller('orders')
 @RequireSubscription()
 export class OrdersController {
-  constructor(private readonly orderService: OrdersService) {}
+  constructor(
+    private readonly orderService: OrdersService,
+    private readonly dashboardService: DashboardService,
+  ) {}
 
   @Get('/')
   async list(
@@ -123,7 +127,7 @@ export class OrdersController {
 
     const [orders, summaryData] = await Promise.all([
       this.orderService.findAll(null, user, startDate, endDate),
-      this.orderService.getSummary(startDate, endDate, null, user),
+      this.dashboardService.getSummary({ startDate, endDate }, user),
     ]);
 
     const dateRangeLabel = `${startDate || 'Awal'} s/d ${endDate || 'Hari Ini'}`;

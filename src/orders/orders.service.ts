@@ -22,6 +22,7 @@ import timezone from 'dayjs/plugin/timezone';
 import { Tenant } from 'src/tenants/tenants.entity';
 import { Response } from 'express';
 import * as ExcelJS from 'exceljs';
+import { DashboardService } from 'src/dashboard/dashboard.service';
 
 @Injectable()
 export class OrdersService {
@@ -33,6 +34,7 @@ export class OrdersService {
     private ingredientRepo: Repository<Ingredient>,
     private dataSource: DataSource,
     private readonly ingredientsMutationService: IngredientMutationService,
+    private readonly dashboardService: DashboardService,
   ) {}
 
   async create(data: Partial<Order>, user: any) {
@@ -207,7 +209,7 @@ export class OrdersService {
     // console.log({ tenantId });
 
     const page = 1;
-    const limit = 100; // bug for report, coz limit here
+    const limit = 700; // bug for report, coz limit here
     const skip = (page - 1) * limit;
     const query = this.orderRepo
       .createQueryBuilder('orders')
@@ -1150,7 +1152,7 @@ export class OrdersService {
     };
 
     // SECTION 1: RINGKASAN UTAMA (KPI CARDS)
-    const kpiHeader = summarySheet.addRow(['METRIK UTAMA', 'VALUASI']);
+    const kpiHeader = summarySheet.addRow(['METRIK UTAMA', 'NILAI / JUMLAH']);
     kpiHeader.eachCell((cell) => {
       cell.fill = {
         type: 'pattern',
@@ -1162,36 +1164,75 @@ export class OrdersService {
 
     const summaryData = summaryPayload;
     const totalRevenue = summaryData.revenues;
+    const totalGross = summaryData.grossIncomes;
+    const totalOpex = summaryData.totalOpex;
+    const totalNet = summaryData.netIncomes;
+    const operatingDaysCount = summaryData.operatingDays.open;
+    const daysOffCount = summaryData.operatingDays.off;
+
+    // mapping new payload on excel
+
     const totalTransactions = summaryData.transactions;
 
     const avgOrderValue = summaryData.transactionMetrics?.avgTransactionValue;
 
-    const rowRev = summarySheet.addRow([
-      'Total Pendapatan Kotor (Gross)',
-      totalRevenue,
+    const rowOpsDay = summarySheet.addRow([
+      'Hari Buka Toko',
+      operatingDaysCount,
     ]);
+    const rowOpsDayOff = summarySheet.addRow(['Hari Libur Toko', daysOffCount]);
+
     const rowTx = summarySheet.addRow([
-      'Total Transaksi Selesai',
+      'Total Transaksi Sukses',
       `${totalTransactions} Transaksi`,
     ]);
-    const rowAvg = summarySheet.addRow([
-      'Rata-rata Nilai Transaksi (AOV)',
-      avgOrderValue,
+    // const rowAvg = summarySheet.addRow([
+    //   'Rata-rata Belanja per Struk',
+    //   avgOrderValue,
+    // ]);
+
+    const rowRev = summarySheet.addRow([
+      'Total Omset / Penjualan',
+      totalRevenue,
     ]);
+    const rowGross = summarySheet.addRow([
+      'Laba Kotor (Untung Kotor)',
+      totalGross,
+    ]);
+    const rowOpex = summarySheet.addRow(['Biaya Operasional', totalOpex]);
+    const rowNetProfit = summarySheet.addRow([
+      'Laba Bersih (Untung Bersih)',
+      totalNet,
+    ]);
+
+    // rowOpsDay.getCell(2).numFmt = '"Rp "#,##0';
+    rowOpsDay.getCell(2).numFmt = '#,##0" Hari"';
+
+    rowOpsDayOff.getCell(2).numFmt = '#,##0" Hari"';
+
+    rowTx.getCell(2).value = Number(totalTransactions || 0);
+    rowTx.getCell(2).numFmt = '#,##0" Transaksi"';
+    // rowAvg.getCell(2).numFmt = '"Rp "#,##0';
 
     rowRev.getCell(2).numFmt = '"Rp "#,##0';
     rowRev.getCell(2).font = { bold: true };
 
-    rowTx.getCell(2).numFmt = '#,##0" Transaksi"';
-    rowAvg.getCell(2).numFmt = '"Rp "#,##0';
+    rowGross.getCell(2).numFmt = '"Rp "#,##0';
+    rowGross.getCell(2).font = { bold: true };
+
+    rowOpex.getCell(2).value = Number(totalOpex || 0);
+    rowOpex.getCell(2).numFmt = '"Rp "#,##0';
+    rowOpex.getCell(2).font = { bold: true };
+
+    rowNetProfit.getCell(2).numFmt = '"Rp "#,##0';
+    rowNetProfit.getCell(2).font = { bold: true };
 
     summarySheet.addRow([]); // Blank row
 
-    // SECTION 2: BREAKDOWN METODE PEMBAYARAN
     const payHeader = summarySheet.addRow([
       'METODE PEMBAYARAN',
       'TOTAL NOMINAL',
-      'PORSI',
+      'RATIO',
     ]);
     payHeader.eachCell((cell) => {
       cell.fill = {
@@ -1231,9 +1272,7 @@ export class OrdersService {
     // Formatting Lebar Kolom Sheet 1
     summarySheet.columns = [{ width: 35 }, { width: 25 }, { width: 15 }];
 
-    // =========================================================================
-    // SHEET 2: DETAIL TRANSAKSI
-    // =========================================================================
+    // DETAIL TRANSAKSI
     const detailSheet = workbook.addWorksheet('Rincian Transaksi');
 
     // Header Detail Transaksi
